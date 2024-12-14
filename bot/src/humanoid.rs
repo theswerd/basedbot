@@ -8,4 +8,5 @@ pub trait Humanoid {
 
     async fn set_right_eblow_yaw(&mut self, yaw: f32) -> Result<(), ()>;
 
+    async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> Result<(), ()>;
 }

@@ -1,6 +1,8 @@
 use bon::Builder;
 use tokio::io::Join;
 use zeroth::{JointPosition, ServoId};
+use zeroth::JointPosition;
+// use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
 
@@ -17,6 +19,8 @@ pub struct MiniRobotCalibration {
     pub left_elbow_yaw_max: f32,
     pub right_elbow_yaw_min: f32,
     pub right_elbow_yaw_max: f32,
+    pub right_shoulder_yaw_min: f32,
+    pub right_shoulder_yaw_max: f32,
 }
 
 impl MiniRobot {
@@ -28,9 +32,24 @@ impl MiniRobot {
     }
 }
 
-impl Humanoid for MiniRobot {
-    async fn calibrate(&mut self) -> Result<(), ()> {
-        let left_shoulder_yaw_info = self.client.get_servo_info(ServoId::LeftElbowYaw).await.unwrap().unwrap();
+
+
+ impl Humanoid for MiniRobot {
+       async  fn calibrate(&mut self) -> Result<(), ()> {
+        // let left_shoulder_yaw_info = self.client.get_servo_info(id: ServoId::LeftShoulderYaw).await.unwrap().unwrap();
+        // let right_shoulder_yaw_info = self.client.get_servo_info(12).await.unwrap().unwrap(); // Assuming ID 12 for right shoulder
+        let left_shoulder_yaw_info = self
+            .client
+            .get_servo_info(ServoId::LeftShoulderYaw)
+            .await
+            .unwrap()
+            .unwrap();
+        let right_shoulder_yaw_info = self
+            .client
+            .get_servo_info(ServoId::RightShoulderYaw)
+            .await
+            .unwrap()
+            .unwrap();
         let left_elbow_yaw_info = self
             .client
             .get_servo_info(ServoId::LeftElbowYaw)
@@ -50,7 +69,9 @@ impl Humanoid for MiniRobot {
             .left_elbow_yaw_max(left_elbow_yaw_info.max_position)
             .left_elbow_yaw_min(left_elbow_yaw_info.min_position)
             .right_elbow_yaw_max(right_elbow_yaw_info.max_position)
-            .right_elbow_yaw_min(right_elbow_yaw_info.min_position);
+            .right_elbow_yaw_min(right_elbow_yaw_info.min_position)
+            .right_shoulder_yaw_max(right_shoulder_yaw_info.max_position)
+            .right_shoulder_yaw_min(right_shoulder_yaw_info.min_position);
 
         self.calibration = Some(calibration_builder.build());
 
@@ -106,4 +127,22 @@ impl Humanoid for MiniRobot {
         ).await.unwrap();
         Ok(())
     }
+
+    async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> Result<(), ()> {
+        let calibration = self.calibration.clone().unwrap();
+        let yaw = yaw * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min) / 90.0 
+            + calibration.right_shoulder_yaw_min;
+    
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: 12,  // Assuming ID 1 for right shoulder
+                position: yaw,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
+    }
+
+    
 }
