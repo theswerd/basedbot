@@ -25,11 +25,16 @@ async fn main() {
     robot.calibrate().await.unwrap();
 
     robot.set_right_shoulder_yaw(45.0).await.unwrap();
-    robot.set_right_eblow_yaw(90.0).await.unwrap();
+    robot.set_right_elbow_yaw(90.0).await.unwrap();
+    robot.set_left_shoulder_yaw(0.0).await.unwrap();
+    robot.set_right_elbow_yaw(0.0).await.unwrap();
+
+    robot.set_left_elbow_yaw(0.0).await.unwrap();
+    robot.set_left_shoulder_pitch(-90.0).await.unwrap();
+
     robot.set_left_shoulder_yaw(90.0).await.unwrap();
 
-
-// robot.se/t
+    // robot.se/t
 }
 
 // 0 -90 90

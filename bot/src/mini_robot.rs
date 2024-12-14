@@ -6,10 +6,10 @@ use crate::humanoid::Humanoid;
 
 pub struct MiniRobot {
     client: zeroth::Client,
-    calibration: Option<MiniRobotCalibration>,
+    calibration: MiniRobotCalibration,
 }
 
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Default)]
 pub struct MiniRobotCalibration {
     pub left_shoulder_yaw_min: f32,
     pub left_shoulder_yaw_max: f32,
@@ -38,7 +38,7 @@ impl MiniRobot {
     pub fn new(client: zeroth::Client) -> Self {
         return MiniRobot {
             client,
-            calibration: None,
+            calibration: Default::default(),
         };
     }
 }
@@ -137,16 +137,16 @@ impl Humanoid for MiniRobot {
             .right_hip_yaw_min(right_hip_yaw_info.min_position)
             .right_hip_yaw_max(right_hip_yaw_info.max_position);
 
-        self.calibration = Some(calibration_builder.build());
+        self.calibration = calibration_builder.build();
 
         Ok(())
     }
 
     async fn set_left_shoulder_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let yaw = yaw * (calibration.left_shoulder_yaw_max - calibration.left_shoulder_yaw_min)
+        let yaw = yaw
+            * (self.calibration.left_shoulder_yaw_max - self.calibration.left_shoulder_yaw_min)
             / 90.0
-            + calibration.left_shoulder_yaw_min;
+            + self.calibration.left_shoulder_yaw_min;
 
         let _ = self
             .client
@@ -160,10 +160,10 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_left_elbow_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let yaw = (yaw + 90.0) * (calibration.left_elbow_yaw_max - calibration.left_elbow_yaw_min)
+        let yaw = (yaw + 90.0)
+            * (self.calibration.left_elbow_yaw_max - self.calibration.left_elbow_yaw_min)
             / 180.0
-            + calibration.left_elbow_yaw_min;
+            + self.calibration.left_elbow_yaw_min;
 
         self.client
             .set_position(JointPosition {
@@ -176,12 +176,11 @@ impl Humanoid for MiniRobot {
         Ok(())
     }
 
-    async fn set_right_eblow_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
+    async fn set_right_elbow_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
         let yaw = (90.0 - yaw)
-            * (calibration.right_elbow_yaw_max - calibration.right_elbow_yaw_min)
+            * (self.calibration.right_elbow_yaw_max - self.calibration.right_elbow_yaw_min)
             / 180.0
-            + calibration.right_elbow_yaw_min;
+            + self.calibration.right_elbow_yaw_min;
 
         self.client
             .set_position(JointPosition {
@@ -195,10 +194,10 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let yaw = (90.0 - yaw) * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
+        let yaw = (90.0 - yaw)
+            * (self.calibration.right_shoulder_yaw_max - self.calibration.right_shoulder_yaw_min)
             / 90.0
-            + calibration.right_shoulder_yaw_min;
+            + self.calibration.right_shoulder_yaw_min;
 
         let _ = self
             .client
@@ -212,9 +211,9 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_left_hip_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let yaw = yaw * (calibration.left_hip_yaw_max - calibration.left_hip_yaw_min) / 90.0
-            + calibration.left_hip_yaw_min;
+        let yaw = yaw * (self.calibration.left_hip_yaw_max - self.calibration.left_hip_yaw_min)
+            / 90.0
+            + self.calibration.left_hip_yaw_min;
 
         let _ = self
             .client
@@ -228,10 +227,10 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_left_hip_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let pitch = pitch * (calibration.left_hip_pitch_max - calibration.left_hip_pitch_min)
+        let pitch = pitch
+            * (self.calibration.left_hip_pitch_max - self.calibration.left_hip_pitch_min)
             / 90.0
-            + calibration.left_hip_pitch_min;
+            + self.calibration.left_hip_pitch_min;
 
         let _ = self
             .client
@@ -245,9 +244,9 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_right_hip_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let yaw = yaw * (calibration.right_hip_yaw_max - calibration.right_hip_yaw_min) / 90.0
-            + calibration.right_hip_yaw_min;
+        let yaw = yaw * (self.calibration.right_hip_yaw_max - self.calibration.right_hip_yaw_min)
+            / 90.0
+            + self.calibration.right_hip_yaw_min;
 
         let _ = self
             .client
@@ -261,10 +260,10 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_right_hip_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
-        let calibration = self.calibration.clone().unwrap();
-        let pitch = pitch * (calibration.right_hip_pitch_max - calibration.right_hip_pitch_min)
+        let pitch = pitch
+            * (self.calibration.right_hip_pitch_max - self.calibration.right_hip_pitch_min)
             / 90.0
-            + calibration.right_hip_pitch_min;
+            + self.calibration.right_hip_pitch_min;
 
         let _ = self
             .client
@@ -277,4 +276,3 @@ impl Humanoid for MiniRobot {
         Ok(())
     }
 }
-

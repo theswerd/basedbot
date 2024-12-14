@@ -16,7 +16,7 @@ pub trait Humanoid {
         yaw: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
-    fn set_right_eblow_yaw(
+    fn set_right_elbow_yaw(
         &mut self,
         yaw: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
