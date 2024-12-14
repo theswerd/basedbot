@@ -32,6 +32,8 @@ async fn main() {
 
 
     
+    robot.set_left_shoulder_yaw(90.0).await.unwrap();
+    robot.set_right_shoulder_yaw(90.0).await.unwrap();
 }
 
 // 0 -90 90

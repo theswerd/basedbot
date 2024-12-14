@@ -21,6 +21,8 @@ pub struct MiniRobotCalibration {
     pub left_shoulder_pitch_max: f32,
     pub right_shoulder_pitch_min: f32,
     pub right_shoulder_pitch_max: f32,
+    pub right_shoulder_yaw_min: f32,
+    pub right_shoulder_yaw_max: f32,
 }
 
 impl MiniRobot {
@@ -36,19 +38,26 @@ impl Humanoid for MiniRobot {
     async fn calibrate(&mut self) -> Result<(), ()> {
         let left_shoulder_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftElbowYaw)
+            .get_servo_info(ServoId::LeftShoulderYaw)
             .await
             .unwrap()
             .unwrap();
-        let left_elbow_yaw_info = self
+        let right_shoulder_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftElbowYaw)
+            .get_servo_info(ServoId::RightShoulderYaw)
             .await
             .unwrap()
             .unwrap();
         let right_elbow_yaw_info = self
             .client
             .get_servo_info(ServoId::RightElbowYaw)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let left_elbow_yaw_info = self
+            .client
+            .get_servo_info(ServoId::LeftElbowYaw)
             .await
             .unwrap()
             .unwrap();
@@ -77,7 +86,9 @@ impl Humanoid for MiniRobot {
             .left_shoulder_pitch_max(left_shoulder_pitch_info.max_position)
             .left_shoulder_pitch_min(left_shoulder_pitch_info.min_position)
             .right_shoulder_pitch_max(right_shoulder_pitch_info.max_position)
-            .right_shoulder_pitch_min(right_shoulder_pitch_info.min_position);
+            .right_shoulder_pitch_min(right_shoulder_pitch_info.min_position)
+            .right_shoulder_yaw_max(right_shoulder_yaw_info.max_position)
+            .right_shoulder_yaw_min(right_shoulder_yaw_info.min_position);
 
         self.calibration = Some(calibration_builder.build());
 
@@ -139,7 +150,8 @@ impl Humanoid for MiniRobot {
     async fn set_left_shoulder_pitch(&mut self, yaw: f32) -> Result<(), ()> {
         let calibration = self.calibration.clone().unwrap();
 
-        let pitch = yaw * (calibration.left_shoulder_pitch_max - calibration.left_shoulder_pitch_min)
+        let pitch = yaw
+            * (calibration.left_shoulder_pitch_max - calibration.left_shoulder_pitch_min)
             / 90.0
             + calibration.left_shoulder_pitch_min;
 
@@ -152,6 +164,22 @@ impl Humanoid for MiniRobot {
             .await
             .unwrap();
         Ok(())
+    }
+    async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> Result<(), ()> {
+        let calibration = self.calibration.clone().unwrap();
+        let yaw = yaw * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
+            / 90.0
+            + calibration.right_shoulder_yaw_min;
 
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: ServoId::RightShoulderYaw, // Assuming ID 1 for right shoulder
+                position: yaw,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
     }
 }
+
