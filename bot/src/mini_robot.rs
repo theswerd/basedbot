@@ -136,7 +136,7 @@ impl MiniRobot {
         let _ = self
             .client
             .set_position(JointPosition {
-                id: 12,  // Assuming ID 1 for right shoulder
+                id: ServoId::RightShoulderYaw,  // Assuming ID 1 for right shoulder
                 position: yaw,
                 speed: 100.0,
             })
