@@ -20,4 +20,6 @@ pub trait Humanoid {
         &mut self,
         yaw: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+
 }

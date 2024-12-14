@@ -196,7 +196,7 @@ impl Humanoid for MiniRobot {
 
     async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
         let calibration = self.calibration.clone().unwrap();
-        let yaw = yaw * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
+        let yaw = (90.0 - yaw) * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
             / 90.0
             + calibration.right_shoulder_yaw_min;
 
