@@ -2,7 +2,7 @@ use bon::Builder;
 use tokio::io::Join;
 use zeroth::{JointPosition, ServoId};
 use zeroth::JointPosition;
-// use zeroth::ServoId;
+use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
 
