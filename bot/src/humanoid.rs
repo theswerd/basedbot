@@ -1,14 +1,23 @@
-
 pub trait Humanoid {
-    async fn calibrate(&mut self) -> Result<(), ()>;
+    fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
-    async fn set_left_shoulder_yaw(&mut self, yaw: f32) -> Result<(), ()>;
+    fn set_left_shoulder_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
-    async fn set_left_elbow_yaw(&mut self, yaw: f32) -> Result<(), ()>;
+    fn set_left_elbow_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
-    async fn set_right_elbow_yaw(&mut self, yaw: f32) -> Result<(), ()>;
+    fn set_right_shoulder_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
-    async fn set_left_shoulder_pitch(&mut self, yaw: f32) -> Result<(), ()>;
-
-    async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> Result<(), ()>;
+    fn set_right_eblow_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 }
