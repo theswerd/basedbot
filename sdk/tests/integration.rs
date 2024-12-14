@@ -2,5 +2,5 @@
 #[test]
 fn sanity() {
     #[allow(unused)]
-    use zeroth::Empty;
+    use zeroth::proto::Empty;
 }
