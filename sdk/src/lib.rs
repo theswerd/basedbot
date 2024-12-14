@@ -71,7 +71,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_wifi_info(&mut self, id: u32) -> Result<Option<ServoInfo>, Error> {
+    pub async fn get_servo_info(&mut self, id: u32) -> Result<Option<ServoInfo>, Error> {
         let res = self
             .inner
             .get_servo_info(proto::ServoId { id: id as i32 })
