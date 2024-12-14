@@ -2,15 +2,43 @@ mod proto {
     tonic::include_proto!("hal_pb");
 }
 
-pub use proto::{
-    servo_control_client::ServoControlClient, AudioChunk, CalibrationStatus, ImuData,
-    JointPosition, JointPositions, ServoInfo, TorqueEnableSetting, TorqueSetting, VideoStreamUrls,
-    WifiCredentials,
-};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+pub use proto::{AudioChunk, CalibrationStatus, ImuData, VideoStreamUrls, WifiCredentials};
 use tonic::{IntoStreamingRequest, Streaming};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u32)]
+#[derive(Debug, Clone, PartialEq)]
+pub struct ServoInfo {
+    id: ServoId,
+    pub temperature: f32,
+    pub current: f32,
+    pub voltage: f32,
+    pub speed: f32,
+    pub current_position: f32,
+    pub min_position: f32,
+    pub max_position: f32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TorqueSetting {
+    id: ServoId,
+    torque: f32,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TorqueEnableSetting {
+    id: ServoId,
+    enable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct JointPosition {
+    id: ServoId,
+    position: f32,
+    speed: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, TryFromPrimitive, IntoPrimitive)]
+#[repr(i32)]
 pub enum ServoId {
     RightAnklePitch = 1,
     RigntKneePitch = 2,
@@ -58,21 +86,40 @@ pub struct Client {
 
 impl Client {
     pub async fn connect(addr: impl AsRef<str>) -> Result<Self, Error> {
-        let conn = ServoControlClient::connect(addr.as_ref().to_string())
-            .await
-            .map_err(|source| Error::Connection { source })?;
+        let conn =
+            proto::servo_control_client::ServoControlClient::connect(addr.as_ref().to_string())
+                .await
+                .map_err(|source| Error::Connection { source })?;
 
         Ok(Self { inner: conn })
     }
 
     pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
         let res = self.inner.get_positions(proto::Empty {}).await?;
-        Ok(res.into_inner().positions)
+        Ok(res
+            .into_inner()
+            .positions
+            .into_iter()
+            .map(|p| JointPosition {
+                id: p.id.try_into().expect("valid servo id"),
+                position: p.position,
+                speed: p.speed,
+            })
+            .collect())
     }
 
     pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
         self.inner
-            .set_positions(proto::JointPositions { positions })
+            .set_positions(proto::JointPositions {
+                positions: positions
+                    .into_iter()
+                    .map(|p| proto::JointPosition {
+                        id: p.id.into(),
+                        speed: p.speed,
+                        position: p.position,
+                    })
+                    .collect(),
+            })
             .await?;
         Ok(())
     }
@@ -88,7 +135,13 @@ impl Client {
     }
 
     pub async fn set_position(&mut self, pos: JointPosition) -> Result<(), Error> {
-        self.inner.set_position(pos).await?;
+        self.inner
+            .set_position(proto::JointPosition {
+                id: pos.id.into(),
+                position: pos.position,
+                speed: pos.speed,
+            })
+            .await?;
         Ok(())
     }
 
@@ -97,10 +150,10 @@ impl Client {
         Ok(())
     }
 
-    pub async fn get_servo_info(&mut self, id: u32) -> Result<Option<ServoInfo>, Error> {
+    pub async fn get_servo_info(&mut self, id: ServoId) -> Result<Option<ServoInfo>, Error> {
         let res = self
             .inner
-            .get_servo_info(proto::ServoId { id: id as i32 })
+            .get_servo_info(proto::ServoId { id: id.into() })
             .await?;
 
         let res = match res.into_inner().result.take() {
@@ -109,7 +162,16 @@ impl Client {
         };
 
         let info = match res {
-            proto::servo_info_response::Result::Info(info) => info,
+            proto::servo_info_response::Result::Info(info) => ServoInfo {
+                id,
+                temperature: info.temperature,
+                current: info.current,
+                voltage: info.voltage,
+                speed: info.speed,
+                current_position: info.current_position,
+                min_position: info.min_position,
+                max_position: info.max_position,
+            },
             proto::servo_info_response::Result::Error(err) => {
                 return Err(Error::Request {
                     message: err.message,
@@ -137,7 +199,7 @@ impl Client {
 
     pub async fn start_calibration(
         &mut self,
-        servo: u32,
+        servo: ServoId,
         speed: i32,
         current_threshold: f32,
     ) -> Result<(), Error> {
@@ -152,7 +214,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn cancel_calibration(&mut self, servo: u32) -> Result<(), Error> {
+    pub async fn cancel_calibration(&mut self, servo: ServoId) -> Result<(), Error> {
         self.inner
             .cancel_calibration(proto::ServoId { id: servo as i32 })
             .await?;
@@ -180,13 +242,20 @@ impl Client {
     }
 
     pub async fn set_torque(&mut self, settings: Vec<TorqueSetting>) -> Result<(), Error> {
+        let settings = settings
+            .into_iter()
+            .map(|s| proto::TorqueSetting {
+                id: s.id.into(),
+                torque: s.torque,
+            })
+            .collect();
         self.inner
             .set_torque(proto::TorqueSettings { settings })
             .await?;
         Ok(())
     }
 
-    pub async fn set_torque_single(&mut self, servo: u32, torque: f32) -> Result<(), Error> {
+    pub async fn set_torque_single(&mut self, servo: ServoId, torque: f32) -> Result<(), Error> {
         self.inner
             .set_torque(proto::TorqueSettings {
                 settings: vec![proto::TorqueSetting {
@@ -200,13 +269,13 @@ impl Client {
 
     pub async fn set_torque_enable_single(
         &mut self,
-        servo: u32,
+        servo: ServoId,
         enable: bool,
     ) -> Result<(), Error> {
         self.inner
             .set_torque_enable(proto::TorqueEnableSettings {
                 settings: vec![proto::TorqueEnableSetting {
-                    id: servo as i32,
+                    id: servo.into(),
                     enable,
                 }],
             })
@@ -218,6 +287,13 @@ impl Client {
         &mut self,
         settings: Vec<TorqueEnableSetting>,
     ) -> Result<(), Error> {
+        let settings = settings
+            .into_iter()
+            .map(|s| proto::TorqueEnableSetting {
+                id: s.id.into(),
+                enable: s.enable,
+            })
+            .collect();
         self.inner
             .set_torque_enable(proto::TorqueEnableSettings { settings })
             .await?;
