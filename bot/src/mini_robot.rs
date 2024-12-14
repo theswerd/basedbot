@@ -210,5 +210,71 @@ impl Humanoid for MiniRobot {
             .await;
         Ok(())
     }
+
+    async fn set_left_hip_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+        let yaw = yaw * (calibration.left_hip_yaw_max - calibration.left_hip_yaw_min) / 90.0
+            + calibration.left_hip_yaw_min;
+
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: ServoId::LeftHipYaw,
+                position: yaw,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
+    }
+
+    async fn set_left_hip_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+        let pitch = pitch * (calibration.left_hip_pitch_max - calibration.left_hip_pitch_min)
+            / 90.0
+            + calibration.left_hip_pitch_min;
+
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: ServoId::LeftHipPitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
+    }
+
+    async fn set_right_hip_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+        let yaw = yaw * (calibration.right_hip_yaw_max - calibration.right_hip_yaw_min) / 90.0
+            + calibration.right_hip_yaw_min;
+
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: ServoId::LeftHipYaw,
+                position: yaw,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
+    }
+
+    async fn set_right_hip_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+        let pitch = pitch * (calibration.right_hip_pitch_max - calibration.right_hip_pitch_min)
+            / 90.0
+            + calibration.right_hip_pitch_min;
+
+        let _ = self
+            .client
+            .set_position(JointPosition {
+                id: ServoId::LeftHipPitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await;
+        Ok(())
+    }
 }
 

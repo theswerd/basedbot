@@ -20,4 +20,24 @@ pub trait Humanoid {
         &mut self,
         yaw: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_left_hip_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_left_hip_pitch(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_right_hip_yaw(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_right_hip_pitch(
+        &mut self,
+        yaw: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 }
