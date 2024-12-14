@@ -7,8 +7,8 @@ use tonic::{transport::Channel, Request};
 use bon::{builder, Builder};
 use zeroth::JointPosition;
 
-pub mod mini_robot;
 pub mod humanoid;
+pub mod mini_robot;
 
 #[tokio::main]
 async fn main() {
@@ -24,12 +24,9 @@ async fn main() {
     let mut robot = MiniRobot::new(client);
     robot.calibrate().await.unwrap();
 
-    robot.set_left_shoulder_yaw(45.0).await.unwrap();
     robot.set_right_eblow_yaw(90.0).await.unwrap();
     robot.set_left_elbow_yaw(90.0).await.unwrap();
 
-
-    
     robot.set_left_shoulder_yaw(90.0).await.unwrap();
     robot.set_right_shoulder_yaw(90.0).await.unwrap();
 }
