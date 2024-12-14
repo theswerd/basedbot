@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-zeroth = { path = "../sdk"}
-tokio = { workspace = true, features = ["full"]}
+zeroth = { path = "../sdk" }
+tokio = { workspace = true, features = ["full"] }
+tonic = { workspace = true }
+bon = "3.3.0"
