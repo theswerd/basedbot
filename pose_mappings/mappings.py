@@ -47,6 +47,40 @@ POSE_LANDMARKS = {
     32: "right_foot_index"
 }
 
+def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    return math.degrees(math.atan(
+        abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y)))
+
+def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    return math.degrees(math.atan(
+        abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y)))
+
+def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    a = np.array(abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y))
+    b = np.array(abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y))
+    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
+def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    a = np.array(abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y))
+    b = np.array(abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y))
+    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
+def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    a = np.array(abs(pose[11].x - pose[13].x), abs(pose[11].y - pose[13].y))
+    b = np.array(abs(pose[15].x - pose[13].x), abs(pose[15].y - pose[13].y))
+    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
+def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
+
+    landmark_output = {
+        '15': right_shoulder_angle(pose),
+        '12': left_shoulder_angle(pose),
+        '11': right_elbow_angle(pose),
+        '16': left_elbow_angle(pose),
+    }
+
+    return landmark_output
+
 
 def print_landmark_positions(result):
     if result.pose_landmarks:
@@ -192,7 +226,7 @@ def main():
 
     latest_result = None
 
-    def result_callback(result, output_image, timestamp_ms):
+    def result_callback(result: mp.tasks.python.vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         nonlocal latest_result
         latest_result = result
         # print('pose landmarker result: {}'.format(result))
@@ -238,23 +272,10 @@ def main():
                 # Draw landmarks if available
                 if latest_result is not None:
                     frame = draw_landmarks_with_labels(frame, latest_result)
-                    if latest_result.pose_landmarks:
-                        pose = latest_result.pose_landmarks[0]
-                        landmark_data = {}
-                        right_shoulder_angle = math.atan(
-                            abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y))
-                        right_shoulder_angle = math.degrees(
-                            right_shoulder_angle)
-                        left_shoulder_angle = math.atan(
-                            abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y))
-                        left_shoulder_angle = math.degrees(left_shoulder_angle)
-                        for idx, landmark in enumerate(pose):
-                            # name = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
-                            if idx == 12:
-                                landmark_data[idx] = left_shoulder_angle
-                            elif idx == 15:
-                                landmark_data[idx] = right_shoulder_angle
-
+                    latest_result.pose_landmarks
+                    if latest_result.HasField('pose_world_landmarks'):
+                        pose = latest_result.pose_world_landmarks[0]
+                        landmark_data = compute_angles(pose)
                         pose_data.append(landmark_data)
 
                 # Display frame
