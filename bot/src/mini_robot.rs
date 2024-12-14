@@ -30,16 +30,16 @@ impl MiniRobot {
 
 impl Humanoid for MiniRobot {
     async fn calibrate(&mut self) -> Result<(), ()> {
-        let left_shoulder_yaw_info = self.client.get_servo_info(15).await.unwrap().unwrap();
+        let left_shoulder_yaw_info = self.client.get_servo_info(ServoId::LeftElbowYaw).await.unwrap().unwrap();
         let left_elbow_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftElbowYaw as u32)
+            .get_servo_info(ServoId::LeftElbowYaw)
             .await
             .unwrap()
             .unwrap();
         let right_elbow_yaw_info = self
             .client
-            .get_servo_info(ServoId::RightElbowYaw as u32)
+            .get_servo_info(ServoId::RightElbowYaw)
             .await
             .unwrap()
             .unwrap();
@@ -66,7 +66,7 @@ impl Humanoid for MiniRobot {
         let _ = self
             .client
             .set_position(JointPosition {
-                id: ServoId::LeftShoulderYaw as i32,
+                id: ServoId::LeftShoulderYaw,
                 position: yaw,
                 speed: 100.0,
             })
@@ -82,7 +82,7 @@ impl Humanoid for MiniRobot {
 
         self.client
             .set_position(JointPosition {
-                id: ServoId::LeftElbowYaw as i32,
+                id: ServoId::LeftElbowYaw,
                 position: yaw,
                 speed: 100.0,
             })
@@ -99,7 +99,7 @@ impl Humanoid for MiniRobot {
 
         self.client.set_position(
             JointPosition {
-                id: ServoId::RightElbowYaw as i32,
+                id: ServoId::RightElbowYaw,
                 position: yaw,
                 speed: 100.0
             }
