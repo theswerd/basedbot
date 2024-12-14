@@ -1,3 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["sdk", "bot"]
+
+[workspace.dependencies]
+tokio = "1.42.0"
