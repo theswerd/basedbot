@@ -8,7 +8,7 @@ use tonic::{IntoStreamingRequest, Streaming};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServoInfo {
-    id: ServoId,
+    pub id: ServoId,
     pub temperature: f32,
     pub current: f32,
     pub voltage: f32,
@@ -20,21 +20,21 @@ pub struct ServoInfo {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TorqueSetting {
-    id: ServoId,
-    torque: f32,
+    pub id: ServoId,
+    pub torque: f32,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TorqueEnableSetting {
-    id: ServoId,
-    enable: bool,
+    pub id: ServoId,
+    pub enable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct JointPosition {
-    id: ServoId,
-    position: f32,
-    speed: f32,
+    pub id: ServoId,
+    pub position: f32,
+    pub speed: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, TryFromPrimitive, IntoPrimitive)]
