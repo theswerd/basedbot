@@ -1,4 +1,4 @@
-pub mod proto {
+mod proto {
     tonic::include_proto!("hal_pb");
 }
 
