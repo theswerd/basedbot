@@ -9,6 +9,30 @@ pub use proto::{
 };
 use tonic::{IntoStreamingRequest, Streaming};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u32)]
+pub enum ServoId {
+    RightAnklePitch = 1,
+    RigntKneePitch = 2,
+    RightHipRoll = 3,
+    RightHipYaw = 4,
+    RightHipPitch = 5,
+
+    LeftAnklePitch = 6,
+    LeftKneePitch = 7,
+    LeftHipRoll = 8,
+    LeftHipYaw = 9,
+    LeftHipPitch = 10,
+
+    RightElbowYaw = 11,
+    RightShoulderYaw = 12,
+    RightShoulderPitch = 13,
+
+    LeftShoulderPitch = 14,
+    LeftShoulderYaw = 15,
+    LeftElbowYaw = 16,
+}
+
 #[derive(Debug, snafu::Snafu)]
 pub enum Error {
     Connection {
@@ -41,13 +65,15 @@ impl Client {
         Ok(Self { inner: conn })
     }
 
-    pub async fn get_positions(&mut self) -> Result<JointPositions, Error> {
+    pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
         let res = self.inner.get_positions(proto::Empty {}).await?;
-        Ok(res.into_inner())
+        Ok(res.into_inner().positions)
     }
 
-    pub async fn set_positions(&mut self, positions: JointPositions) -> Result<(), Error> {
-        self.inner.set_positions(positions).await?;
+    pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
+        self.inner
+            .set_positions(proto::JointPositions { positions })
+            .await?;
         Ok(())
     }
 
