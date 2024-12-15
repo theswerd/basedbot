@@ -22,6 +22,7 @@ lazy_static = "1.4"
 krec = "0.2"
 num_enum = "0.7.3"
 snafu = "0.8.5"
+strum = "0.26.3"
 
 [build-dependencies]
 tonic-build = "0.12"

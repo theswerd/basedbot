@@ -389,5 +389,6 @@ impl Client {
     // pub async fn get_recorded_audio(&mut self) -> Result<Streaming<AudioChunk>, Error> {
     //     let res = self.inner.get_recorded_audio(kos_proto::actuator::Empty {}).await?;
 
-    // Ok(res.into_inner())
+    //     Ok(res.into_inner())
+    // }
 }
