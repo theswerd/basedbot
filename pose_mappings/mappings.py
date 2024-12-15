@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import time
 import atexit
+from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
 
@@ -53,22 +54,27 @@ def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y)))
 
+
 def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y)))
+
 
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[12].z - pose[14].z) / abs(pose[12].y - pose[14].y)))
 
+
 def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[11].z - pose[13].z) / abs(pose[11].y - pose[13].y)))
+
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
@@ -96,56 +102,6 @@ def print_landmark_positions(result):
             name = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
-
-
-def result_callback(result, output_image, timestamp_ms):
-    global latest_result
-    latest_result = result
-    print_landmark_positions(result)  # This will print all landmark positions
-
-
-class CameraManager:
-    def __init__(self, camera_id=0):
-        self.camera_id = camera_id
-        self.cap = None
-        atexit.register(self.cleanup)
-
-    def initialize(self):
-        self.cleanup()
-        time.sleep(1)
-        self.cap = cv2.VideoCapture(self.camera_id)
-        if not self.cap.isOpened():
-            raise RuntimeError("Failed to open camera")
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        return self.cap
-
-    def read_frame(self, max_retries=3):
-        for attempt in range(max_retries):
-            if self.cap is None or not self.cap.isOpened():
-                print(
-                    f"Camera not open, attempting to initialize... (Attempt {attempt + 1})")
-                try:
-                    self.initialize()
-                except Exception as e:
-                    print(f"Initialization failed: {e}")
-                    time.sleep(1)
-                    continue
-            ret, frame = self.cap.read()
-            if ret:
-                return True, frame
-            else:
-                print(
-                    f"Failed to read frame, retrying... (Attempt {attempt + 1})")
-                self.cleanup()
-                time.sleep(1)
-        return False, None
-
-    def cleanup(self):
-        if self.cap is not None:
-            self.cap.release()
-            self.cap = None
-
 
 def draw_landmarks_with_labels(rgb_image, detection_result):
     annotated_image = np.copy(rgb_image)
@@ -191,39 +147,6 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
     return annotated_image
 
 
-def draw_world_landmarks_on_image(rgb_image, detection_result):
-    pose_landmarks_list = detection_result.pose_world_landmarks
-    annotated_image = np.copy(rgb_image)
-
-    # Loop through the detected poses to visualize.
-    for idx in range(len(pose_landmarks_list)):
-        pose_landmarks = pose_landmarks_list[idx]
-
-        # Scale world coordinates to image coordinates
-        h, w = rgb_image.shape[:2]
-        scaled_landmarks = []
-        for landmark in pose_landmarks:
-            # Scale x and y to image dimensions, discard z
-            x = int(landmark.x * w)
-            y = int(landmark.y * h)
-            scaled_landmarks.append((x, y))
-
-        # Draw connections between landmarks
-        for connection in mp.solutions.pose.POSE_CONNECTIONS:
-            start_idx = connection[0]
-            end_idx = connection[1]
-            cv2.line(annotated_image,
-                     scaled_landmarks[start_idx],
-                     scaled_landmarks[end_idx],
-                     (0, 255, 0), 2)
-
-        # Draw landmark points
-        for point in scaled_landmarks:
-            cv2.circle(annotated_image, point, 5, (0, 0, 255), -1)
-
-    return annotated_image
-
-
 def main():
     print("Starting main")
     # Initialize MediaPipe components
@@ -235,11 +158,14 @@ def main():
     latest_result = None
 
     def result_callback(result, output_image: mp.Image, timestamp_ms: int):
+        # result is a mediapipe image
         nonlocal latest_result
-        latest_result = result
+        latest_result = {
+            "joints_2d": result,
+            "depth_map": None
+        }
 
-    def modify_z_coordinates(pose, frame):
-        depth_map = depth_model.pred_depth(frame)
+    def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
             pixel_y = int(landmark.y * frame.shape[0])
             pixel_x = int(landmark.x * frame.shape[1])
@@ -248,18 +174,19 @@ def main():
     options = PoseLandmarkerOptions(
         base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
         output_segmentation_masks=True,
-        running_mode=VisionRunningMode.LIVE_STREAM,
-        result_callback=result_callback
+        running_mode=VisionRunningMode.IMAGE
     )
 
-    camera = CameraManager(camera_id=0)
+    camera = cv2.VideoCapture(0)
     timestamp = 0
     pose_data = []
     depth_model = DepthModel()
     try:
         with PoseLandmarker.create_from_options(options) as landmarker:
             while True:
-                ret, frame = camera.read_frame()
+                if not camera.isOpened():
+                    continue
+                ret, frame = camera.read()
 
                 if not ret:
                     print("Failed to get frame after all retries")
@@ -268,21 +195,27 @@ def main():
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-
-                timestamp += 1
-                landmarker.detect_async(mp_image, timestamp)
-
+                
+                # Get detection results directly
+                detection_result = landmarker.detect(mp_image)
+                pil_image = Image.fromarray(frame)
+                depth_map = depth_model.pred_depth(pil_image)
                 # Draw landmarks if available
-                if latest_result is not None:
-                    frame = draw_landmarks_with_labels(frame, latest_result)
-                    if latest_result.pose_world_landmarks:
-                        pose = latest_result.pose_world_landmarks[0]
-                        # modify_z_coordinates(pose, frame)
-                        landmark_data = compute_angles(pose)
-                        pose_data.append(landmark_data)
+
+                frame = draw_landmarks_with_labels(frame, detection_result)
+                
+                if detection_result.pose_world_landmarks:
+                    pose = detection_result.pose_world_landmarks[0]
+                    modify_z_coordinates(pose, depth_map)
+                    landmark_data = compute_angles(pose)
+                    pose_data.append(landmark_data)
+
+                
 
                 # Display frame
                 cv2.imshow("MediaPipe Pose Landmarker", frame)
+                # show depth map
+                cv2.imshow("Depth Map", depth_map)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -297,9 +230,41 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
-        camera.cleanup()
         cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     main()
+
+
+# def draw_world_landmarks_on_image(rgb_image, detection_result):
+#     pose_landmarks_list = detection_result.pose_world_landmarks
+#     annotated_image = np.copy(rgb_image)
+
+#     # Loop through the detected poses to visualize.
+#     for idx in range(len(pose_landmarks_list)):
+#         pose_landmarks = pose_landmarks_list[idx]
+
+#         # Scale world coordinates to image coordinates
+#         h, w = rgb_image.shape[:2]
+#         scaled_landmarks = []
+#         for landmark in pose_landmarks:
+#             # Scale x and y to image dimensions, discard z
+#             x = int(landmark.x * w)
+#             y = int(landmark.y * h)
+#             scaled_landmarks.append((x, y))
+
+#         # Draw connections between landmarks
+#         for connection in mp.solutions.pose.POSE_CONNECTIONS:
+#             start_idx = connection[0]
+#             end_idx = connection[1]
+#             cv2.line(annotated_image,
+#                      scaled_landmarks[start_idx],
+#                      scaled_landmarks[end_idx],
+#                      (0, 255, 0), 2)
+
+#         # Draw landmark points
+#         for point in scaled_landmarks:
+#             cv2.circle(annotated_image, point, 5, (0, 0, 255), -1)
+
+#     return annotated_image
