@@ -1,8 +1,9 @@
+import os
+import json
 import math
 import cv2
 import mediapipe as mp
 import numpy as np
-import os
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
@@ -113,7 +114,7 @@ def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     if denominator < 1e-6:
         denominator = 1e-6
     angle = math.degrees(math.atan(
-        abs(pose[12].z - pose[14].z) / denominator))
+        (pose[12].z - pose[14].z) / denominator))
     print("y12 , 14", pose[12].y, pose[14].y)
     print("z12 , 14", pose[12].z, pose[14].z)
     print("angle", angle)
@@ -226,24 +227,22 @@ def main():
             # Convert normalized coordinates to pixel indices
             pixel_y = int(landmark.y * frame.shape[0])
             pixel_x = int(landmark.x * frame.shape[1])
-            
+
             # Clip indices to ensure they are within the valid range of the depth map
             pixel_y = np.clip(pixel_y, 0, depth_map.shape[0] - 1)
             pixel_x = np.clip(pixel_x, 0, depth_map.shape[1] - 1)
-            
+
             # Assign the depth value to the z-coordinate
             landmark.z = depth_map[pixel_y, pixel_x]
 
-
     options = PoseLandmarkerOptions(
         base_options=BaseOptions(
-            model_asset_path="pose_landmarker_heavy.task"),
+            model_asset_path="pose_landmarker_lite.task"),
         output_segmentation_masks=True,
         running_mode=VisionRunningMode.IMAGE
     )
 
     camera = cv2.VideoCapture(_camera)
-    timestamp = 0
     pose_data = []
     depth_model = DepthModel()
     try:
@@ -277,7 +276,7 @@ def main():
                     pose = detection_result.pose_world_landmarks[0]
                     image_pose = detection_result.pose_landmarks[0]
                     modify_z_coordinates(image_pose, depth_map)
-                    log_pose_to_rerun(pose)  # Log pose points to rerun
+                    log_pose_to_rerun(pose)
                     landmark_data = compute_angles(pose)
                     pose_data.append(landmark_data)
                 # breakpoint()
@@ -292,52 +291,16 @@ def main():
                     break
 
     except KeyboardInterrupt:
-        # Export pose data to JSON file
-        import json
-        with open('pose_data.json', 'w') as f:
-            json.dump(pose_data, f, indent=4)
-
         print("Interrupted by user")
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()  # Print the full traceback
-
     finally:
+        with open('pose_data.json', 'w') as f:
+            json.dump(pose_data, f, indent=4)
+        camera.release()
         cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
     main()
-
-
-# def draw_world_landmarks_on_image(rgb_image, detection_result):
-#     pose_landmarks_list = detection_result.pose_world_landmarks
-#     annotated_image = np.copy(rgb_image)
-
-#     # Loop through the detected poses to visualize.
-#     for idx in range(len(pose_landmarks_list)):
-#         pose_landmarks = pose_landmarks_list[idx]
-
-#         # Scale world coordinates to image coordinates
-#         h, w = rgb_image.shape[:2]
-#         scaled_landmarks = []
-#         for landmark in pose_landmarks:
-#             # Scale x and y to image dimensions, discard z
-#             x = int(landmark.x * w)
-#             y = int(landmark.y * h)
-#             scaled_landmarks.append((x, y))
-
-#         # Draw connections between landmarks
-#         for connection in mp.solutions.pose.POSE_CONNECTIONS:
-#             start_idx = connection[0]
-#             end_idx = connection[1]
-#             cv2.line(annotated_image,
-#                      scaled_landmarks[start_idx],
-#                      scaled_landmarks[end_idx],
-#                      (0, 255, 0), 2)
-
-#         # Draw landmark points
-#         for point in scaled_landmarks:
-#             cv2.circle(annotated_image, point, 5, (0, 0, 255), -1)
-
-#     return annotated_image
