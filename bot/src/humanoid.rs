@@ -96,7 +96,7 @@ impl From<ServoId> for Joint {
             RightKneePitch => Joint::RightKneePitch,
             RightHipRoll => todo!(),
             LeftAnklePitch => Joint::LeftAnklePitch,
-            LeftHipRoll => todo!()
+            LeftHipRoll => todo!(),
         }
     }
 }

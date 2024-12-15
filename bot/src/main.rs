@@ -10,7 +10,6 @@ use zeroth::JointPosition;
 
 pub mod humanoid;
 pub mod mini_robot;
-pub mod movement;
 
 #[tokio::main]
 async fn main() {
@@ -33,7 +32,7 @@ async fn main() {
     let frames =
         file_to_frames("/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/pose_data.json");
 
-        println!("FRAMES: {:?}", frames);
+    println!("FRAMES: {:?}", frames);
     std::thread::sleep(Duration::from_millis(200));
 
 
