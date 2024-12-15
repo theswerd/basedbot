@@ -19,10 +19,8 @@ pub struct Frame {
 pub struct MiniRobot {
     current: Option<Frame>,
     pub queue: Arc<crossbeam::queue::SegQueue<Frame>>,
-    // last_tick: Instant,
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
-    balancing_task: tokio::task::JoinHandle<()>,
 }
 
 impl MiniRobot {
@@ -82,17 +80,12 @@ impl MiniRobot {
     pub fn new(client: zeroth::Client) -> Self {
         let client = Arc::new(tokio::sync::Mutex::new(client));
 
-        let balancing_task = tokio::spawn(async move {
-            //
-        });
-
         MiniRobot {
             current: None,
             queue: Arc::new(crossbeam::queue::SegQueue::new()),
             // last_tick: Instant::now(),
             client,
             calibration: Default::default(),
-            balancing_task,
         }
     }
 
@@ -162,12 +155,6 @@ impl MiniRobot {
         }
 
         Ok(self.advance())
-    }
-}
-
-impl Drop for MiniRobot {
-    fn drop(&mut self) {
-        self.balancing_task.abort();
     }
 }
 
