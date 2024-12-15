@@ -43,12 +43,15 @@ async fn main() -> eyre::Result<()> {
     initial_position(&mut *robot).await?;
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    stream_frame_from_server(robot.queue.clone()).await?;
+    let queue = robot.queue.clone();
+
+    stream_frame_from_server(&mut robot, queue).await?;
 
     Ok(())
 }
 
-pub async fn stream_frame_from_server(
+pub async fn stream_frame_from_server<H: Humanoid>(
+    robot: &mut Runtime<H>,
     frame_queue: Arc<crossbeam::queue::SegQueue<Frame>>,
 ) -> eyre::Result<()> {
     let tcp_listener = tokio::net::TcpListener::bind("0.0.0.0:8020").await?;
@@ -60,12 +63,33 @@ pub async fn stream_frame_from_server(
     // run our app with hyper, listening globally on port 3000
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
-    println!("Listening on http://{}", tcp_listener.local_addr()?);
+    // tokio::task::spawn(async move {
+    //     loop {
+    //         println!("LOOPing {}", robot.queue.len());
+    //         let out = robot.step().await.unwrap();
+    //         if !out {
+    //             break;
+    //         }
+    //     }
+    // }).await.unwrap();
 
-    axum::serve(tcp_listener, app.into_make_service())
-        .await
-        .unwrap();
+    tokio::spawn(async {
+        println!("Listening on http://{}", tcp_listener.local_addr().unwrap());
 
+        axum::serve(tcp_listener, app.into_make_service())
+            .await
+            .unwrap();
+    })
+    .await
+    .unwrap();
+
+    loop {
+        println!("LOOPing {}", robot.queue.len());
+        let out = robot.step().await.unwrap();
+        if !out {
+            break;
+        }
+    }
     Ok(())
 }
 
