@@ -1,10 +1,11 @@
 use std::env;
 use std::path::PathBuf;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     // Path to the Protobuf files
     let proto_root = "proto";
-    
+
+    // Where to output the compiled Rust files
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // List of Protobuf files
@@ -18,26 +19,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "google/longrunning/operations.proto",
     ];
 
+    let includes = [proto_root, &format!("{}/googleapis", proto_root)];
+
+    // Create the output directory
     std::fs::create_dir_all(out_dir.join("kos")).expect("Failed to create output directory");
 
+    // Configure and compile Protobuf files
     tonic_build::configure()
-        .build_client(true)
         .build_server(false)
-        .protoc_arg("--experimental_allow_proto3_optional")
+        .build_client(true)
         .build_transport(true)
-        .compile_well_known_types(true)
         .out_dir(out_dir.join("kos"))
-        .emit_rerun_if_changed(true)
-        .compile_protos(
-            &protos,
-            &["proto", &format!("{}/googleapis", "proto")],
-        )?;
+        .protoc_arg("--experimental_allow_proto3_optional")
+        .compile_protos(&protos, &includes)
+        .expect("Failed to compile protos");
 
     // Re-run the build script if any of the proto files change
     for proto in &protos {
         println!("cargo:rerun-if-changed={}/kos/{}", proto_root, proto);
     }
     println!("cargo:rerun-if-changed={}", proto_root);
-
-    Ok(())
 }

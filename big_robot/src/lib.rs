@@ -1,39 +1,13 @@
-pub mod kos {
-    pub mod actuator {
-        tonic::include_proto!("kos/kos.actuator");
-    }
+#![allow(unknown_lints)]
+#![allow(clippy::doc_lazy_continuation)]
 
-    pub mod common {
-        tonic::include_proto!("kos/kos.common");
-    }
+// pub mod config;
+mod grpc_interface;
+// pub mod hal;
+// pub mod services;
+// pub mod telemetry;
+// pub mod telemetry_types;
 
-    pub mod imu {
-        tonic::include_proto!("kos/kos.imu");
-    }
+pub use grpc_interface::google as google_proto;
+pub use grpc_interface::kos as kos_proto;
 
-    pub mod inference {
-        tonic::include_proto!("kos/kos.inference");
-    }
-
-    pub mod process_manager {
-        tonic::include_proto!("kos/kos.processmanager");
-    }
-
-    pub mod system {
-        tonic::include_proto!("kos/kos.system");
-    }
-}
-
-pub mod google {
-    pub mod longrunning {
-        tonic::include_proto!("kos/google.longrunning");
-    }
-
-    pub mod api {
-        tonic::include_proto!("kos/google.api");
-    }
-
-    pub mod rpc {
-        tonic::include_proto!("kos/google.rpc");
-    }
-}
