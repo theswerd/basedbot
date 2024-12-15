@@ -16,6 +16,8 @@ pub struct MiniRobot {
 
 #[derive(Builder, Clone, Default)]
 pub struct MiniRobotCalibration {
+
+    // shoulder
     pub left_shoulder_yaw_min: f32,
     pub left_shoulder_yaw_max: f32,
     pub left_elbow_yaw_min: f32,
@@ -29,6 +31,7 @@ pub struct MiniRobotCalibration {
     pub right_shoulder_yaw_min: f32,
     pub right_shoulder_yaw_max: f32,
 
+    // hip
     pub left_hip_pitch_min: f32,
     pub left_hip_pitch_max: f32,
     pub left_hip_yaw_min: f32,
@@ -37,6 +40,16 @@ pub struct MiniRobotCalibration {
     pub right_hip_pitch_max: f32,
     pub right_hip_yaw_min: f32,
     pub right_hip_yaw_max: f32,
+
+    // ankle
+    pub left_ankle_pitch_min: f32,
+    pub left_ankle_pitch_max: f32,
+    pub left_ankle_roll_min: f32,
+    pub left_ankle_roll_max: f32,
+    pub right_ankle_pitch_min: f32,
+    pub right_ankle_pitch_max: f32,
+    pub right_ankle_roll_min: f32,
+    pub right_ankle_roll_max: f32,
 }
 
 impl MiniRobot {
@@ -65,6 +78,8 @@ impl Humanoid for MiniRobot {
     async fn calibrate(&mut self) -> eyre::Result<()> {
         // let left_shoulder_yaw_info = self.client.get_servo_info(id: ServoId::LeftShoulderYaw).await.unwrap().unwrap();
         // let right_shoulder_yaw_info = self.client.get_servo_info(12).await.unwrap().unwrap(); // Assuming ID 12 for right shoulder
+        
+        // shoulder info functions
         let left_shoulder_yaw_info = self
             .client
             .lock()
@@ -111,6 +126,8 @@ impl Humanoid for MiniRobot {
             .await?
             .unwrap();
 
+
+        //hip info functions
         let left_hip_pitch_info = self
             .client
             .lock()
@@ -142,7 +159,24 @@ impl Humanoid for MiniRobot {
             .get_servo_info(ServoId::LeftHipYaw)
             .await?
             .unwrap();
-
+        
+        // ANKLE INFO
+        let left_ankle_pitch_info = self
+            .client
+            .lock()
+            .await
+            .get_servo_info(ServoId::LeftAnklePitch)
+            .await?
+            .unwrap();
+        
+        let right_ankle_pitch_info = self
+            .client
+            .lock()
+            .await
+            .get_servo_info(ServoId::RightAnklePitch)
+            .await?
+            .unwrap();
+        
         let calibration_builder = MiniRobotCalibration::builder()
             .left_shoulder_yaw_max(left_shoulder_yaw_info.max_position)
             .left_shoulder_yaw_min(left_shoulder_yaw_info.min_position)
@@ -163,7 +197,13 @@ impl Humanoid for MiniRobot {
             .right_hip_pitch_min(right_hip_pitch_info.min_position)
             .right_hip_pitch_max(right_hip_pitch_info.max_position)
             .right_hip_yaw_min(right_hip_yaw_info.min_position)
-            .right_hip_yaw_max(right_hip_yaw_info.max_position);
+            .right_hip_yaw_max(right_hip_yaw_info.max_position)
+            .left_ankle_pitch_max(left_ankle_pitch_info.max_position)
+            .left_ankle_pitch_min(left_ankle_pitch_info.min_position)
+            .right_ankle_pitch_max(right_ankle_pitch_info.max_position)
+            .right_ankle_pitch_min(right_ankle_pitch_info.min_position);
+
+            // .right_ankle_pitch_min(right_ankle_pitch_info.min_position);
 
         self.calibration = calibration_builder.build();
 
@@ -363,4 +403,47 @@ impl Humanoid for MiniRobot {
 
         Ok(())
     }
+
+    async fn set_left_ankle_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone();
+        let pitch = (pitch + 45.0)
+            * (calibration.left_ankle_pitch_max - calibration.left_ankle_pitch_min)
+            / 90.0
+            + calibration.left_ankle_pitch_min;
+
+        self.client
+            .lock()
+            .await
+            .set_position(JointPosition {
+                id: ServoId::LeftAnklePitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn set_right_ankle_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone();
+        let pitch = (pitch + 45.0)
+            * (calibration.right_ankle_pitch_max - calibration.right_ankle_pitch_min)
+            / 90.0
+            + calibration.right_ankle_pitch_min;
+
+        self.client
+            .lock()
+            .await
+            .set_position(JointPosition {
+                id: ServoId::RightAnklePitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
 }

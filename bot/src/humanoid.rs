@@ -51,4 +51,14 @@ pub trait Humanoid {
         pitch: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
+    fn set_left_ankle_pitch(
+        &mut self,
+        pitch: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_right_ankle_pitch(
+        &mut self,
+        pitch: f32,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
 }
