@@ -104,6 +104,10 @@ impl From<ServoId> for Joint {
 pub trait Humanoid {
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
+    fn translate(&self, joint: crate::humanoid::Joint, value: f32) -> f32;
+
+    fn detranslate(&self, joint: crate::humanoid::Joint, value: f32 ) -> f32;
+
     fn get_joint(
         &self,
         joint: Joint,
