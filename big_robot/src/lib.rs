@@ -532,27 +532,12 @@ impl Client {
     //     Ok(())
     // }
 
-    // pub async fn get_imu_data(&mut self) -> Result<ImuValuesResponse, Error> {
-    //     let res = self
-    //         .imu
-    //         .get_values(tonic::IntoRequest::<ImuValuesResponse>::into_request(self))
-    //         .await?;
-    //     Ok(res.into_inner())
-    // }
-
     // pub async fn upload_audio(
     //     &mut self,
     //     stream: impl IntoStreamingRequest<Message = AudioChunk>,
     // ) -> Result<String, Error> {
     //     let res = self.inner.upload_audio(stream).await?;
     //     Ok(res.into_inner().audio_id)
-    // }
-
-    // pub async fn play_audio(&mut self, audio_id: String, volume: f32) -> Result<(), Error> {
-    //     self.inner
-    //         .play_audio(kos_proto::actuator::PlayRequest { audio_id, volume })
-    //         .await?;
-    //     Ok(())
     // }
 
     // pub async fn start_recording(
@@ -701,7 +686,7 @@ impl Client {
     //     channels: i32,
     // ) -> Result<(), Error> {
     //     self.inner
-    //         .start_recording(kos_proto::RecordingConfig {
+    //         .start_recording(kos_proto::actuator::RecordingConfig {
     //             sample_rate,
     //             format,
     //             channels,
