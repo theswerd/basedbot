@@ -9,6 +9,7 @@ use humanoid::Humanoid;
 use humanoid::Joint;
 use humanoid::JointPosition;
 
+#[derive( Clone)]
 pub struct MiniRobot {
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
@@ -645,7 +646,7 @@ impl Humanoid for MiniRobot {
                         Ok(zeroth::JointPosition {
                             id: servo_id.0,
                             position: self.translate(joint, value),
-                            speed: 1000.0,
+                            speed: 100.0,
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?,

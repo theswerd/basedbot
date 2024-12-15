@@ -51,14 +51,14 @@ async fn main() -> eyre::Result<()> {
 }
 
 pub async fn stream_frame_from_server<H: Humanoid>(
-    robot:Runtime<H>,
+    mut robot: Runtime<H>,
     // frame_queue: Arc<crossbeam::queue::SegQueue<Frame>>,
 ) -> eyre::Result<()> {
     let tcp_listener = tokio::net::TcpListener::bind("0.0.0.0:8020").await?;
     let app = Router::new()
         .route("/status", get(|| async { "OK" }))
         .route("/frame", post(frame_handler))
-        .with_state(robot);
+        .with_state(robot.clone());
 
     // run our app with hyper, listening globally on port 3000
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -82,13 +82,13 @@ pub async fn stream_frame_from_server<H: Humanoid>(
     });
 
     println!("Run loop started");
-
     loop {
         println!("LOOPing {}", robot.queue_len());
+
         let out = robot.step().await.unwrap();
-        if !out {
-            break;
-        }
+        // if !out {
+        //     break;
+        // }
     }
     Ok(())
 }
