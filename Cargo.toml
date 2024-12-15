@@ -5,3 +5,5 @@ members = ["sdk", "bot"]
 [workspace.dependencies]
 tokio = "1.42.0"
 tonic = "0.12.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

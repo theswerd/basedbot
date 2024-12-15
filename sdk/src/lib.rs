@@ -83,6 +83,9 @@ pub enum Error {
 
     #[snafu(display("{message}"))]
     Request { message: String },
+
+    #[snafu(display("Invalid servo id"))]
+    ServoNotFound,
 }
 
 impl From<tonic::Status> for Error {
