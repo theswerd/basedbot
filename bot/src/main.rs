@@ -25,18 +25,29 @@ async fn main() {
 
     let mut robot = MiniRobot::new(client);
 
-    
     robot.calibrate().await.unwrap();
+
+    std::thread::sleep(Duration::from_secs(1));
+
 
     initial_position(&mut robot).await;
 
-    let frames =
-        file_to_frames("/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/pose_data.json");
 
-        println!("FRAMES: {:?}", frames);
+
+    let frames = file_to_frames(
+        "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion.json",
+    );
+
+    // for frame in frames.iter() {
+    //     std::thread::sleep(Duration::from_millis(100));
+
+    //     for (joint, value) in &frame.joints {
+    //         robot.set_joint(joint.clone(), value.clone()).await.unwrap();
+    //     }
+    // }
+
+    println!("FRAMES: {:?}", frames);
     std::thread::sleep(Duration::from_millis(200));
-
-
 }
 
 #[derive(Debug)]

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bon::Builder;
+use eyre::Ok;
 use tokio::sync::Mutex;
 use zeroth::JointPosition;
 use zeroth::ServoId;
@@ -587,6 +588,25 @@ impl Humanoid for MiniRobot {
                 Err(zeroth::Error::ServoNotFound.into())
             }
         }
+    }
+
+    async fn set_joints(
+        &mut self,
+        joints: std::collections::BTreeMap<crate::humanoid::Joint, f32>,
+    ) ->  eyre::Result<()> {
+        self.client.lock().await.set_positions(
+            joints
+                .into_iter()
+                .map(|(joint, value)|  {
+                    JointPosition {
+                        id: joint.into().unwrap(),
+                        position: value,
+                        speed: 100.,
+                    }
+                }).collect()
+        );
+
+        Ok(())
     }
 }
 
