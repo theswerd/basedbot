@@ -2,8 +2,6 @@ import math
 import cv2
 import mediapipe as mp
 import numpy as np
-import time
-import atexit
 import os
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
@@ -57,35 +55,53 @@ POSE_LANDMARKS = {
 
 
 def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = abs(pose[12].y - pose[14].y)
+    if denominator < 1e-6:
+        denominator = 1e-6
     return math.degrees(math.atan(
-        abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y)))
+        abs(pose[12].x - pose[14].x) / denominator))
 
 
 def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = abs(pose[11].y - pose[13].y)
+    if denominator < 1e-6:
+        denominator = 1e-6
     return math.degrees(math.atan(
-        abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y)))
+        abs(pose[11].x - pose[13].x) / denominator))
 
 
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = abs(pose[12].y - pose[14].y)
+    if denominator < 1e-6:
+        denominator = 1e-6
     return math.degrees(math.atan(
-        abs(pose[12].z - pose[14].z) / abs(pose[12].y - pose[14].y)))
+        abs(pose[12].z - pose[14].z) / denominator))
 
 
 def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = abs(pose[11].y - pose[13].y)
+    if denominator < 1e-6:
+        denominator = 1e-6
     return math.degrees(math.atan(
-        abs(pose[11].z - pose[13].z) / abs(pose[11].y - pose[13].y)))
+        abs(pose[11].z - pose[13].z) / denominator))
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
-    return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    norm_product = np.linalg.norm(a) * np.linalg.norm(b)
+    if norm_product < 1e-6:
+        norm_product = 1e-6
+    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
 
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
-    return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    norm_product = np.linalg.norm(a) * np.linalg.norm(b)
+    if norm_product < 1e-6:
+        norm_product = 1e-6
+    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
 
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -108,6 +124,7 @@ def print_landmark_positions(result):
             name = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
+
 
 def draw_landmarks_with_labels(rgb_image, detection_result):
     annotated_image = np.copy(rgb_image)
@@ -161,16 +178,6 @@ def main():
     PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
     VisionRunningMode = mp.tasks.vision.RunningMode
 
-    latest_result = None
-
-    def result_callback(result, output_image: mp.Image, timestamp_ms: int):
-        # result is a mediapipe image
-        nonlocal latest_result
-        latest_result = {
-            "joints_2d": result,
-            "depth_map": None
-        }
-
     def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
             pixel_y = int(landmark.y * frame.shape[0])
@@ -178,7 +185,7 @@ def main():
             landmark.z = depth_map[pixel_y][pixel_x]
 
     options = PoseLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
+        base_options=BaseOptions(model_asset_path="pose_landmarker_heavy.task"),
         output_segmentation_masks=True,
         running_mode=VisionRunningMode.IMAGE
     )
@@ -194,6 +201,10 @@ def main():
                     continue
                 ret, frame = camera.read()
 
+                # downsample 4x on the image
+                frame = cv2.resize(
+                    frame, (frame.shape[1] // 4, frame.shape[0] // 4))
+
                 if not ret:
                     print("Failed to get frame after all retries")
                     break
@@ -201,7 +212,7 @@ def main():
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-                
+
                 # Get detection results directly
                 detection_result = landmarker.detect(mp_image)
                 pil_image = Image.fromarray(frame)
@@ -209,19 +220,18 @@ def main():
                 # Draw landmarks if available
 
                 frame = draw_landmarks_with_labels(frame, detection_result)
-                
+
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
                     modify_z_coordinates(pose, depth_map)
                     landmark_data = compute_angles(pose)
                     pose_data.append(landmark_data)
 
-                
-
                 # Display frame
                 cv2.imshow("MediaPipe Pose Landmarker", frame)
-                # show depth map
                 cv2.imshow("Depth Map", depth_map)
+                cv2.moveWindow("MediaPipe Pose Landmarker", 0, 0) 
+                cv2.moveWindow("Depth Map", frame.shape[1], 0) 
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break

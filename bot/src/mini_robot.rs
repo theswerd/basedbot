@@ -6,8 +6,10 @@ use zeroth::JointPosition;
 use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
+use crate::movement::MovementState;
 
 pub struct MiniRobot {
+    state: MovementState,
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
     balancing_task: tokio::task::JoinHandle<()>,
@@ -59,10 +61,22 @@ impl MiniRobot {
         });
 
         MiniRobot {
+            state: MovementState::new(),
             client,
             calibration: Default::default(),
             balancing_task,
         }
+    }
+
+    pub async fn step_movement(&mut self) -> eyre::Result<()> {
+        let frame = self.state.step();
+
+        let mut done = true;
+        for (servo, delta) in frame.into_iter() {
+            self.set_joint(servo, delta).await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -76,7 +90,6 @@ impl Humanoid for MiniRobot {
     async fn calibrate(&mut self) -> eyre::Result<()> {
         // let left_shoulder_yaw_info = self.client.get_servo_info(id: ServoId::LeftShoulderYaw).await.unwrap().unwrap();
         // let right_shoulder_yaw_info = self.client.get_servo_info(12).await.unwrap().unwrap(); // Assuming ID 12 for right shoulder
-
         // shoulder info functions
         let left_shoulder_yaw_info = self
             .client
@@ -333,6 +346,247 @@ impl Humanoid for MiniRobot {
             .await?;
 
         Ok(())
+    }
+
+    async fn get_joint(
+        &self,
+        joint: crate::humanoid::Joint,
+    ) -> eyre::Result<zeroth::JointPosition> {
+        match joint {
+            crate::humanoid::Joint::LeftHipPitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftHipPitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::LeftHipYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftHipYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::RightHipPitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightHipPitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::RightHipYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightHipYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::LeftKneePitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftKneePitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::LeftKneeYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+            crate::humanoid::Joint::RightKneePitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightKneePitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::RightKneeYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+                
+            },
+            crate::humanoid::Joint::LeftAnklePitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftAnklePitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::LeftAnkleYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            },
+            crate::humanoid::Joint::RightAnklePitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightAnklePitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::RightAnkleYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            },
+            crate::humanoid::Joint::LeftShoulderPitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftShoulderPitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::LeftShoulderYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftShoulderYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::RightShoulderPitch => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightShoulderPitch)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::RightShoulderYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightShoulderYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::LeftElbowPitch => {
+                Err(zeroth::Error::ServoNotFound.into())
+            },
+            crate::humanoid::Joint::LeftElbowYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftElbowYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            },
+            crate::humanoid::Joint::RightElbowPitch => {
+                Err(zeroth::Error::ServoNotFound.into())
+            },
+            crate::humanoid::Joint::RightElbowYaw => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightElbowYaw)
+                    .await?
+                    .unwrap();
+                Ok(zeroth::JointPosition {
+                    id: position.id.into(),
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            crate::humanoid::Joint::LeftWristPitch => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+            crate::humanoid::Joint::LeftWristYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+            crate::humanoid::Joint::RightWristPitch => {
+                Err(zeroth::Error::ServoNotFound.into())
+            },
+            crate::humanoid::Joint::RightWristYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+            crate::humanoid::Joint::NeckPitch => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+            crate::humanoid::Joint::NeckYaw => {
+                Err(zeroth::Error::ServoNotFound.into())
+            }
+        }
     }
 }
 

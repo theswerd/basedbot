@@ -13,7 +13,7 @@ else:
 class DepthModel:
     def __init__(self):
         self.pipe = pipeline(task="depth-estimation", device=_device,
-                             model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf")
+                             model="depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf")
 
     def pred_depth(self, image):
         """
