@@ -188,6 +188,9 @@ def main():
                     continue
                 ret, frame = camera.read()
 
+                # downsample 4x on the image
+                frame = cv2.resize(frame, (frame.shape[1] // 4, frame.shape[0] // 4))
+
                 if not ret:
                     print("Failed to get frame after all retries")
                     break
