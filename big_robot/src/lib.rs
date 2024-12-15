@@ -120,6 +120,7 @@ impl Client {
 
         Ok(Self { inner: conn })
     }
+
     pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
         let res = self.inner.get_positions(kos_proto::Empty {}).await?;
         Ok(res
@@ -133,7 +134,7 @@ impl Client {
             })
             .collect())
     }
-    // }
+
     pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
         self.inner
             .set_positions(kos_proto::JointPositions {
