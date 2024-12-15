@@ -176,6 +176,7 @@ name = "big_robot"
 version = "0.1.0"
 dependencies = [
 <<<<<<< HEAD
+<<<<<<< HEAD
  "async-trait",
  "base64",
  "bytes",
@@ -197,11 +198,29 @@ dependencies = [
 =======
  "num_enum",
  "prost",
+=======
+ "async-trait",
+ "base64",
+ "bytes",
+ "eyre",
+ "hyper 0.14.31",
+ "krec",
+ "lazy_static",
+ "prost 0.13.4",
+ "prost-types 0.13.4",
+ "rumqttc",
+>>>>>>> b114a7b (replicate from kos)
  "serde",
- "snafu",
+ "serde_json",
+ "tokio",
  "tonic",
  "tonic-build",
+<<<<<<< HEAD
 >>>>>>> 703fa83 (added big robot sdk init)
+=======
+ "tracing",
+ "yaml-rust2",
+>>>>>>> b114a7b (replicate from kos)
 ]
 
 [[package]]
@@ -679,6 +698,28 @@ dependencies = [
  "eyre",
  "serde",
  "tokio",
+]
+
+[[package]]
+name = "hyper"
+version = "0.14.31"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c08302e8fa335b151b788c775ff56e7a03ae64ff85c548ee820fecb70356e85"
+dependencies = [
+ "bytes",
+ "futures-channel",
+ "futures-core",
+ "futures-util",
+ "http 0.2.12",
+ "http-body 0.4.6",
+ "httparse",
+ "httpdate",
+ "itoa",
+ "pin-project-lite",
+ "tokio",
+ "tower-service",
+ "tracing",
+ "want",
 ]
 
 [[package]]
@@ -1472,6 +1513,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "serde_path_to_error"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1494,6 +1536,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> b114a7b (replicate from kos)
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1579,6 +1623,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
+<<<<<<< HEAD
 name = "strum"
 version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1601,6 +1646,8 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> b114a7b (replicate from kos)
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
