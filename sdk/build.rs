@@ -4,9 +4,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build_server(false)
         .build_transport(true)
         .compile_well_known_types(true)
+        .emit_rerun_if_changed(true)
         .compile_protos(&["proto/hal_pb.proto"], &["proto"])?;
-
-    println!("cargo:rerun-if-changed=proto/hal_pb.proto");
 
     Ok(())
 }

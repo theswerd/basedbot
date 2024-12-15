@@ -31,8 +31,7 @@ async fn main() {
 //    robot.set_left_shoulder_yaw(0.0).await.unwrap();
 //    robot.set_right_shoulder_pitch(0.0).await.unwrap();
 
-
-// robot.se/t
+    // robot.se/t
 }
 
 // 0 -90 90
