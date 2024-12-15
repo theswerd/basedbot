@@ -32,20 +32,20 @@ async fn main() -> eyre::Result<()> {
     // // client.enable_movement().await.unwrap();
 
     let robot = MiniRobot::new(client);
-    let mut robot = ::humanoid::Runtime::new(robot);
+    let robot = ::humanoid::Runtime::new(robot);
 
-    robot.calibrate().await?;
+    robot.lock().await.calibrate().await?;
 
     println!("Calibrated");
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    initial_position(&mut *robot).await?;
+    initial_position(&robot).await?;
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    let queue = robot.queue.clone();
+    // let queue = robot.queue.clone();
 
-    stream_frame_from_server(&mut robot).await?;
+    stream_frame_from_server(robot).await?;
 
     Ok(())
 }
@@ -84,7 +84,7 @@ pub async fn stream_frame_from_server<H: Humanoid>(
     println!("Run loop started");
 
     loop {
-        println!("LOOPing {}", robot.queue.len());
+        println!("LOOPing {}", robot.queue_len());
         let out = robot.step().await.unwrap();
         if !out {
             break;
@@ -105,7 +105,7 @@ pub async fn load_and_run_frames<H: Humanoid>(robot: &mut Runtime<H>) {
     }
 
     loop {
-        println!("LOOPing {}", robot.queue.len());
+        println!("LOOPing {}", robot.queue_len());
         let out = robot.step().await.unwrap();
         if !out {
             break;
@@ -175,7 +175,7 @@ pub fn frame_json_to_frame(frame_json: serde_json::Value) -> eyre::Result<Frame>
     Ok(Frame { joints })
 }
 
-pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
+pub async fn initial_position<H: Humanoid>(robot: &Runtime<H>) -> eyre::Result<()> {
     let mut initial_joints_btree = BTreeMap::new();
     initial_joints_btree.insert(Joint::RightElbowYaw, 0.0);
     initial_joints_btree.insert(Joint::LeftElbowYaw, 0.0);
@@ -199,7 +199,12 @@ pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
 
     // initial_joints_btree.insert(Joint::RightKneePitch, -90.0);
 
-    robot.set_joints(initial_joints_btree).await.unwrap();
+    robot
+        .lock()
+        .await
+        .set_joints(initial_joints_btree)
+        .await
+        .unwrap();
 
     Ok(())
 }

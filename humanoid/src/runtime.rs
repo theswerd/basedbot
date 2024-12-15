@@ -1,8 +1,7 @@
-use std::{
-    ops::{Deref, DerefMut},
-    sync::Arc,
-    time::Duration,
-};
+use std::{ops::Deref, sync::Arc, time::Duration};
+
+use crossbeam::atomic::AtomicCell;
+use tokio::sync::Mutex;
 
 use crate::{Humanoid, Joint};
 
@@ -11,42 +10,61 @@ pub struct Frame {
     pub joints: std::collections::BTreeMap<Joint, f32>,
 }
 
-pub struct Runtime<H: Humanoid> {
-    robot: H,
-    current: Option<Frame>,
+struct RuntimeInner<H: Humanoid> {
+    robot: Mutex<H>,
+    current: AtomicCell<Option<Frame>>,
+    // unfortunately need arc here due to axum constraints needing H: Send if we clone the whole
+    // runtime
     pub queue: Arc<crossbeam::queue::SegQueue<Frame>>,
+}
+
+#[derive(Clone)]
+pub struct Runtime<H: Humanoid> {
+    inner: Arc<RuntimeInner<H>>,
 }
 
 impl<H: Humanoid> Runtime<H> {
     pub fn new(robot: H) -> Self {
         Self {
-            robot,
-            current: None,
-            queue: Arc::new(crossbeam::queue::SegQueue::new()),
+            inner: Arc::new(RuntimeInner {
+                robot: Mutex::new(robot),
+                current: AtomicCell::new(None),
+                queue: Arc::new(crossbeam::queue::SegQueue::new()),
+            }),
         }
+    }
+
+    pub fn queue(&self) -> Arc<crossbeam::queue::SegQueue<Frame>> {
+        self.inner.queue.clone()
+    }
+
+    pub fn queue_len(&self) -> usize {
+        self.inner.queue.len()
     }
 
     pub fn overwrite(&mut self, frame: Frame) {
         // Clear the queue
-        while let Some(_) = self.queue.pop() {}
+        while let Some(_) = self.inner.queue.pop() {}
 
-        self.current.replace(frame);
+        self.inner.current.swap(Some(frame));
     }
 
     pub fn advance(&mut self) -> bool {
-        if let Some(frame) = self.queue.pop() {
-            self.current.replace(frame);
+        if let Some(frame) = self.inner.queue.pop() {
+            self.inner.current.swap(Some(frame));
             return true;
         }
         false
     }
 
     pub fn push_frame(&self, frame: Frame) {
-        self.queue.push(frame);
+        self.inner.queue.push(frame);
     }
 
     pub fn is_complete(&self, current_state: Frame) -> bool {
-        if let Some(frame) = &self.current {
+        // Safety: The pointer should never be null
+        if let Some(frame) = &unsafe { self.inner.current.as_ptr().as_ref().expect("non-null ptr") }
+        {
             return frame == &current_state;
         }
 
@@ -54,11 +72,19 @@ impl<H: Humanoid> Runtime<H> {
     }
 
     pub async fn step(&mut self) -> eyre::Result<bool> {
-        let current = match self.current.clone() {
-            Some(current) => current,
+        let current = match self.inner.current.take() {
+            Some(current) => {
+                let frame = current.clone();
+
+                // If we have a current frame, push it back to the queue
+                // This is a hack because of the atomic cell usage
+                self.inner.current.store(Some(current));
+
+                frame
+            }
             None => {
-                if let Some(next) = self.queue.pop() {
-                    self.current = Some(next.clone());
+                if let Some(next) = self.inner.queue.pop() {
+                    self.inner.current.store(Some(next.clone()));
                     next
                 } else {
                     return Ok(false);
@@ -67,7 +93,13 @@ impl<H: Humanoid> Runtime<H> {
         };
 
         println!("RUNNING CURRENT FRAME: {:?}", current);
-        self.robot.set_joints(current.joints.clone()).await.unwrap();
+        self.inner
+            .robot
+            .lock()
+            .await
+            .set_joints(current.joints.clone())
+            .await
+            .unwrap();
 
         loop {
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -75,8 +107,19 @@ impl<H: Humanoid> Runtime<H> {
             // check if all joints are within a 5 degree of the target
             let mut done = true;
             for (joint, value) in &current.joints {
-                let current = self.robot.get_joint(joint.clone()).await?;
-                let joint_position = self.robot.translate(joint.clone(), value.clone());
+                let current = self
+                    .inner
+                    .robot
+                    .lock()
+                    .await
+                    .get_joint(joint.clone())
+                    .await?;
+                let joint_position = self
+                    .inner
+                    .robot
+                    .lock()
+                    .await
+                    .translate(joint.clone(), value.clone());
                 let dist = (current.position - joint_position).abs();
 
                 let dist_check = dist > 10.0;
@@ -103,15 +146,9 @@ impl<H: Humanoid> Runtime<H> {
 }
 
 impl<H: Humanoid> Deref for Runtime<H> {
-    type Target = H;
+    type Target = Mutex<H>;
 
     fn deref(&self) -> &Self::Target {
-        &self.robot
-    }
-}
-
-impl<H: Humanoid> DerefMut for Runtime<H> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.robot
+        &self.inner.robot
     }
 }
