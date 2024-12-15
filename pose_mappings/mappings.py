@@ -2,8 +2,6 @@ import math
 import cv2
 import mediapipe as mp
 import numpy as np
-import time
-import atexit
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
@@ -174,8 +172,6 @@ def main():
     PoseLandmarkerOptions = mp.tasks.vision.PoseLandmarkerOptions
     VisionRunningMode = mp.tasks.vision.RunningMode
 
-    latest_result = None
-
     def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
             pixel_y = int(landmark.y * frame.shape[0])
@@ -189,7 +185,6 @@ def main():
     )
 
     camera = cv2.VideoCapture(0)
-    timestamp = 0
     pose_data = []
     depth_model = DepthModel()
     try:
