@@ -179,7 +179,7 @@ def main():
             landmark.z = depth_map[pixel_y][pixel_x]
 
     options = PoseLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
+        base_options=BaseOptions(model_asset_path="pose_landmarker_heavy.task"),
         output_segmentation_masks=True,
         running_mode=VisionRunningMode.IMAGE
     )
