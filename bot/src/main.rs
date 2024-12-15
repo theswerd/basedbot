@@ -1,10 +1,9 @@
 use std::{collections::BTreeMap, io::Read, sync::Arc, time::Duration};
 
-use ::humanoid::{Humanoid, Joint};
-use mini_robot::{Frame, MiniRobot};
+use ::humanoid::{Frame, Humanoid, Joint, Runtime};
+use mini_robot::MiniRobot;
 use serde::Deserialize;
 use serde_json::from_str;
-use zeroth::TorqueEnableSetting;
 
 use axum::{
     extract::State,
@@ -32,7 +31,8 @@ async fn main() -> eyre::Result<()> {
     // return Ok(());
     // // client.enable_movement().await.unwrap();
 
-    let mut robot = MiniRobot::new(client);
+    let robot = MiniRobot::new(client);
+    let mut robot = ::humanoid::Runtime::new(robot);
 
     robot.calibrate().await?;
 
@@ -40,18 +40,16 @@ async fn main() -> eyre::Result<()> {
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
-    initial_position(&mut robot).await?;
+    initial_position(&mut *robot).await?;
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    stream_frame_from_server(
-        robot.queue.clone(),
-    ).await?;
+    stream_frame_from_server(robot.queue.clone()).await?;
 
     Ok(())
 }
 
 pub async fn stream_frame_from_server(
-    frame_queue:Arc<crossbeam::queue::SegQueue<Frame>>,
+    frame_queue: Arc<crossbeam::queue::SegQueue<Frame>>,
 ) -> eyre::Result<()> {
     let tcp_listener = tokio::net::TcpListener::bind("0.0.0.0:8020").await?;
     let app = Router::new()
@@ -64,12 +62,14 @@ pub async fn stream_frame_from_server(
 
     println!("Listening on http://{}", tcp_listener.local_addr()?);
 
-    axum::serve(tcp_listener, app.into_make_service()).await.unwrap();
+    axum::serve(tcp_listener, app.into_make_service())
+        .await
+        .unwrap();
 
     Ok(())
 }
 
-pub async fn load_and_run_frames(robot: &mut MiniRobot) {
+pub async fn load_and_run_frames<H: Humanoid>(robot: &mut Runtime<H>) {
     let frames =
         file_to_frames("/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/pose_data.json")
             .unwrap();
