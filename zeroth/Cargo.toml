@@ -19,6 +19,7 @@ snafu = "0.8.5"
 tonic-build = "0.12.3"
 num_enum = "0.7.3"
 serde = { version = "1.0.216", features = ["derive"] }
+strum = { version = "0.26.3", features = ["derive"] }
 
 [build-dependencies]
 tonic-build = "0.12.3"

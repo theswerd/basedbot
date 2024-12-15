@@ -267,6 +267,20 @@ impl Humanoid for MiniRobot {
 
         self.calibration = calibration_builder.build();
 
+        self.client
+            .lock()
+            .await
+            .set_torque(
+                (1..=16)
+                    .map(|id| zeroth::TorqueSetting {
+                        // 1..16 is the range of servo ids
+                        id: ServoId::try_from(id).expect("valid servo id"),
+                        torque: 1.,
+                    })
+                    .collect(),
+            )
+            .await?;
+
         Ok(())
     }
 
