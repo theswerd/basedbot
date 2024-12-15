@@ -344,7 +344,7 @@ def main(stream: str = True, disable_viz: bool = False):
                 # if frame_counter % 3 != 0:
                 #     continue
 
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
