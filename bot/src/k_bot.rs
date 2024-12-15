@@ -9,6 +9,7 @@ use humanoid::Humanoid;
 use humanoid::Joint;
 use humanoid::JointPosition;
 
+#[derive(Clone)]
 pub struct KBot {
     client: Arc<Mutex<zeroth::Client>>,
     calibration: KBotCalibration,
@@ -86,6 +87,34 @@ fn no_such_servo() -> eyre::Report {
     eyre::eyre!("No such servo")
 }
 
+impl Humanoid for KBot {
+    async fn calibrate(&mut self) -> eyre::Result<()> {
+        // todo!()
+    }
+
+    fn translate(&self, joint: Joint, value: f32) -> f32 {
+        todo!()
+    }
+
+    async fn stabilize(&mut self) -> eyre::Result<()> {
+        todo!()
+
+    }
+
+    async fn get_joint(
+        &self,
+        joint: Joint,
+    ) ->eyre::Result<JointPosition> {
+        todo!()
+    }
+
+    async fn set_joints(
+        &mut self,
+        joints: std::collections::BTreeMap<Joint, f32>,
+    ) -> eyre::Result<()> {
+        todo!()
+    }
+}
 // impl Humanoid for KBot {
 //     async fn stabilize(&mut self) -> eyre::Result<()> {
 //         println!("Stabilization not implemented");
