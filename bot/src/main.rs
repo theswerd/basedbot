@@ -34,7 +34,7 @@ async fn main() -> eyre::Result<()> {
     tokio::time::sleep(Duration::from_secs(2)).await;
 
     let frames = file_to_frames(
-        "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion.json",
+        "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion_2.json",
     )?;
 
     std::thread::sleep(Duration::from_secs(1));
@@ -43,13 +43,13 @@ async fn main() -> eyre::Result<()> {
         robot.push_frame(frame);
     }
 
-    loop {
-        println!("LOOPing {}", robot.queue.len());
-        let out = robot.step().await?;
-        if !out {
-            break;
-        }
-    }
+    // loop {
+    //     println!("LOOPing {}", robot.queue.len());
+    //     let out = robot.step().await?;
+    //     if !out {
+    //         break;
+    //     }
+    // }
     // for frame in frames.iter() {
     //     std::thread::sleep(Duration::from_millis(100));
 
