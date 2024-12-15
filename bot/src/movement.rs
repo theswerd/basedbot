@@ -16,13 +16,13 @@ struct CurrentFrame {
     duration: Duration,
 }
 
-pub struct State {
+pub struct MovementState {
     current: Option<CurrentFrame>,
     queue: Arc<crossbeam::queue::SegQueue<Frame>>,
     last_tick: Instant,
 }
 
-impl State {
+impl MovementState {
     pub fn new() -> Self {
         Self {
             current: None,
@@ -47,6 +47,8 @@ impl State {
         let Some(current) = &self.current else {
             return Default::default();
         };
+
+        // check if the current value is close enough to the target
 
         let elapsed = self.last_tick.elapsed();
 
