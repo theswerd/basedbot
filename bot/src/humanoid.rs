@@ -29,7 +29,7 @@ impl TryFrom<Joint> for ServoId {
             Joint::RightKneeYaw => zeroth::ServoId::RightHipRoll,
             Joint::LeftKneePitch => zeroth::ServoId::LeftKneePitch,
             Joint::LeftHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
-            Joint::RightKneePitch => zeroth::ServoId::RightAnklePitch,
+            Joint::RightKneePitch => zeroth::ServoId::RightKneePitch,
             Joint::RightHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
             Joint::LeftAnklePitch => zeroth::ServoId::LeftAnklePitch,
             Joint::LeftAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
