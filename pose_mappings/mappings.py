@@ -1,17 +1,23 @@
 import os
-import json
 import math
+import json
+import time
+import traceback
+import requests
+from dotenv import load_dotenv
 import cv2
 import mediapipe as mp
 import numpy as np
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
-import traceback
-import time
 
 import rerun as rr
 import rerun.blueprint as rrb
+
+load_dotenv()
+STREAM_ENDPOINT = os.getenv('STREAM_ENDPOINT', 'http://localhost:8080')
+
 
 if os.path.exists('/dev/video0'):
     _camera = '/dev/video0'
@@ -136,23 +142,28 @@ def log_image_data_to_rerun(frame, depth_map):
 
 def right_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
-    return math.degrees(math.atan(
+    angle = math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / denominator))
+    print(f"right shoulder side angle: {angle:.2f}")
+    return angle
 
 
 def left_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
-    return math.degrees(math.atan(
+    angle = math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / denominator))
+    print(f"left shoulder side angle: {angle:.2f}")
+    return angle
 
 
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         (pose[12].z - pose[14].z) / denominator))
-    print("y12 , 14", pose[12].y, pose[14].y)
-    print("z12 , 14", pose[12].z, pose[14].z)
-    print("angle", angle)
+    # print(f"x12: {pose[12].x}, x14: {pose[14].x}")
+    # print(f"y12: {pose[12].y}, y14: {pose[14].y}")
+    # print(f"z12: {pose[12].z}, z14: {pose[14].z}")
+    print(f"right shoulder forward angle: {angle:.2f}")
     return angle
 
 
@@ -166,15 +177,19 @@ def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     norm_product = max(np.linalg.norm(a) * np.linalg.norm(b), 1e-6)
-    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    print(f"right elbow angle: {angle:.2f}")
+    return angle
 
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
-    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
+    a = np.array([abs(pose[11].x - pose[13].x), abs(pose[11].y - pose[13].y)])
+    b = np.array([abs(pose[15].x - pose[13].x), abs(pose[15].y - pose[13].y)])
     norm_product = np.linalg.norm(a) * np.linalg.norm(b)
     norm_product = max(norm_product, 1e-6)
-    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    print(f"left elbow angle: {angle:.2f}")
+    return angle
 
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -253,7 +268,7 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
     return annotated_image
 
 
-def main():
+def main(stream: str = True):
     print("Starting main")
     rr.init("rerun_example_my_data", spawn=True)
     rr.log("/", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, static=True)
@@ -309,8 +324,8 @@ def main():
                 detection_result = landmarker.detect(mp_image)
                 pil_image = Image.fromarray(frame)
                 depth_map = depth_model.pred_depth(pil_image)
-                # Draw landmarks if available
 
+                # Draw landmarks if available
                 frame = draw_landmarks_with_labels(frame, detection_result)
 
                 if detection_result.pose_world_landmarks:
@@ -321,7 +336,14 @@ def main():
                     landmark_data = compute_angles(pose)
                     log_landmark_data_to_rerun(landmark_data)
                     landmark_data = clip_pose_data(landmark_data)
-                    pose_data.append(landmark_data)
+                    if stream:
+                        requests.post(STREAM_ENDPOINT,
+                                      json=landmark_data,
+                                      headers={
+                                          'Content-Type': 'application/json'},
+                                      timeout=0.1)
+                    else:
+                        pose_data.append(landmark_data)
 
                 depth_map_rendered = (depth_map * 100).astype(np.uint8)
                 log_image_data_to_rerun(frame, depth_map_rendered)
@@ -361,4 +383,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--stream', action='store_true')
+    args = parser.parse_args()
+    main(args.stream)
