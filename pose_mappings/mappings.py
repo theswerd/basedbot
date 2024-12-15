@@ -187,7 +187,7 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
 
     return landmark_output
 
-def low_pass_filter(data, alpha=0.1):
+def low_pass_filter(data, alpha=0.5):
     filtered_data = [data[0]]
     filtered_data.extend(
         {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
