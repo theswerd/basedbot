@@ -3,3 +3,4 @@
 *.pyc
 *.task
 **/*.json
+.env
