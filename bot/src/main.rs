@@ -21,9 +21,10 @@ async fn main() {
     };
 
     println!("Connected!");
-    // client.disable_movement().await.unwrap();
 
-    client.enable_movement().await.unwrap();
+        // client.disable_movement().await.unwrap();
+
+    // client.enable_movement().await.unwrap();
 
     let mut robot = MiniRobot::new(client);
 
@@ -34,15 +35,15 @@ async fn main() {
     std::thread::sleep(Duration::from_secs(1));
 
     initial_position(&mut robot).await;
-    println!("In Initial Position");
-    std::thread::sleep(Duration::from_secs(2));
+    // println!("In Initial Position");
+    std::thread::sleep(Duration::from_secs(3));
 
 
     let frames = file_to_frames(
         "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion.json",
     );
 
-    // std::thread::sleep(Duration::from_secs(1));
+    std::thread::sleep(Duration::from_secs(1));
 
     for frame in frames {
         robot.push_frame(frame);
@@ -101,11 +102,18 @@ pub fn file_to_frames(file: &str) -> Vec<Frame> {
 pub async fn initial_position(robot: &mut impl humanoid::Humanoid) {
     let mut initial_joints_btree = BTreeMap::new();
     initial_joints_btree.insert(Joint::RightElbowYaw, 0.0);
-    initial_joints_btree.insert(Joint::RightShoulderPitch, 0.0);
-    initial_joints_btree.insert(Joint::RightShoulderYaw, 0.0);
     initial_joints_btree.insert(Joint::LeftElbowYaw, 0.0);
-    initial_joints_btree.insert(Joint::LeftShoulderPitch, 0.0);
+    initial_joints_btree.insert(Joint::RightShoulderPitch, 90.0);
+        initial_joints_btree.insert(Joint::LeftShoulderPitch, 90.0);
+
+    initial_joints_btree.insert(Joint::RightShoulderYaw, 0.0);
     initial_joints_btree.insert(Joint::LeftShoulderYaw, 0.0);
+    initial_joints_btree.insert(Joint::LeftAnklePitch, 0.0);
+    initial_joints_btree.insert(Joint::RightAnklePitch, 0.0); // TODO: REFVESRSE
+    initial_joints_btree.insert(Joint::LeftHipPitch, 90.0); // TODO: REVERSE
+    initial_joints_btree.insert(Joint::RightHipPitch, 0.0);
+    initial_joints_btree.insert(Joint::LeftHipYaw, 90.0); // TODO: REVERSE 
+    initial_joints_btree.insert(Joint::RightHipYaw, 0.0);
     robot.set_joints(initial_joints_btree).await.unwrap();
     // robot
     //     .set_joint(humanoid::Joint::RightElbowYaw, 0.0)
