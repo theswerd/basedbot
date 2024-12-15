@@ -8,13 +8,16 @@ import numpy as np
 
 if torch.cuda.is_available():
     _device = 'cuda:0'
+    _model = "depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf"
 else:
     _device = 'mps'
+    _model = "depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf"
+
 
 class DepthModel:
     def __init__(self):
         self.pipe = pipeline(task="depth-estimation", device=_device,
-                             model="depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf")
+                             model=_model)
 
     def pred_depth(self, image):
         """

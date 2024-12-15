@@ -1,126 +1,77 @@
-use serde::{Deserialize, Serialize};
-use zeroth::ServoId;
+use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Joint {
-    LeftHipPitch,
-    LeftHipYaw,
+use humanoid::Joint;
 
-    RightHipPitch,
-    RightHipYaw,
+pub struct ServoId(pub zeroth::ServoId);
 
-    LeftKneePitch,
-    LeftKneeYaw,
-
-    RightKneePitch,
-    RightKneeYaw,
-
-    LeftAnklePitch,
-    LeftAnkleYaw,
-
-    RightAnklePitch,
-    RightAnkleYaw,
-
-    LeftShoulderPitch,
-    LeftShoulderYaw,
-
-    RightShoulderPitch,
-    RightShoulderYaw,
-
-    LeftElbowPitch,
-    LeftElbowYaw,
-
-    RightElbowPitch,
-    RightElbowYaw,
-
-    LeftWristPitch,
-    LeftWristYaw,
-
-    RightWristPitch,
-    RightWristYaw,
-
-    NeckPitch,
-    NeckYaw,
+impl Display for ServoId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
 }
 
-impl Into<Option<zeroth::ServoId>> for Joint {
-    fn into(self) -> Option<zeroth::ServoId> {
-        use zeroth::ServoId::*;
-        Some(match self {
-            Joint::LeftHipPitch => LeftHipPitch,
-            Joint::LeftHipYaw => LeftHipYaw,
-            Joint::RightHipPitch => RightHipPitch,
-            Joint::RightHipYaw => RightHipYaw,
-            Joint::LeftKneePitch => LeftKneePitch,
-            Joint::LeftKneeYaw => None?,
-            Joint::RightKneePitch => RightAnklePitch,
-            Joint::RightKneeYaw => None?,
-            Joint::LeftAnklePitch => LeftAnklePitch,
-            Joint::LeftAnkleYaw => None?,
-            Joint::RightAnklePitch => RightAnklePitch,
-            Joint::RightAnkleYaw => None?,
-            Joint::LeftShoulderPitch => LeftShoulderPitch,
-            Joint::LeftShoulderYaw => LeftShoulderYaw,
-            Joint::RightShoulderPitch => RightShoulderPitch,
-            Joint::RightShoulderYaw => RightShoulderYaw,
-            Joint::LeftElbowPitch => None?,
-            Joint::LeftElbowYaw => LeftElbowYaw,
-            Joint::RightElbowPitch => None?,
-            Joint::RightElbowYaw => RightElbowYaw,
+impl std::fmt::Debug for ServoId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl TryFrom<Joint> for ServoId {
+    type Error = eyre::Report;
+
+    fn try_from(value: Joint) -> Result<Self, Self::Error> {
+        Ok(ServoId(match value {
+            Joint::LeftHipPitch => zeroth::ServoId::LeftHipPitch,
+            Joint::LeftHipYaw => zeroth::ServoId::LeftHipYaw,
+            Joint::RightHipPitch => zeroth::ServoId::RightHipPitch,
+            Joint::RightHipYaw => zeroth::ServoId::RightHipYaw,
+            Joint::LeftKneePitch => zeroth::ServoId::LeftKneePitch,
+            Joint::LeftKneeYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::RightKneePitch => zeroth::ServoId::RightAnklePitch,
+            Joint::RightKneeYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::LeftAnklePitch => zeroth::ServoId::LeftAnklePitch,
+            Joint::LeftAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::RightAnklePitch => zeroth::ServoId::RightAnklePitch,
+            Joint::RightAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::LeftShoulderPitch => zeroth::ServoId::LeftShoulderPitch,
+            Joint::LeftShoulderYaw => zeroth::ServoId::LeftShoulderYaw,
+            Joint::RightShoulderPitch => zeroth::ServoId::RightShoulderPitch,
+            Joint::RightShoulderYaw => zeroth::ServoId::RightShoulderYaw,
+            Joint::LeftElbowPitch => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::LeftElbowYaw => zeroth::ServoId::LeftElbowYaw,
+            Joint::RightElbowPitch => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::RightElbowYaw => zeroth::ServoId::RightElbowYaw,
             Joint::LeftWristPitch
             | Joint::LeftWristYaw
             | Joint::RightWristPitch
             | Joint::RightWristYaw
             | Joint::NeckPitch
-            | Joint::NeckYaw => None?,
+            | Joint::NeckYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+        }))
+    }
+}
+
+impl TryFrom<ServoId> for Joint {
+    type Error = eyre::Report;
+
+    fn try_from(value: ServoId) -> Result<Self, Self::Error> {
+        Ok(match value.0 {
+            zeroth::ServoId::LeftHipPitch => Joint::LeftHipPitch,
+            zeroth::ServoId::LeftHipYaw => Joint::LeftHipYaw,
+            zeroth::ServoId::RightHipPitch => Joint::RightHipPitch,
+            zeroth::ServoId::RightHipYaw => Joint::RightHipYaw,
+            zeroth::ServoId::LeftKneePitch => Joint::LeftKneePitch,
+            zeroth::ServoId::LeftShoulderPitch => Joint::LeftShoulderPitch,
+            zeroth::ServoId::LeftShoulderYaw => Joint::LeftShoulderYaw,
+            zeroth::ServoId::RightShoulderPitch => Joint::RightShoulderPitch,
+            zeroth::ServoId::RightShoulderYaw => Joint::RightShoulderYaw,
+            zeroth::ServoId::LeftElbowYaw => Joint::LeftElbowYaw,
+            zeroth::ServoId::RightElbowYaw => Joint::RightElbowYaw,
+            zeroth::ServoId::RightAnklePitch => Joint::RightAnklePitch,
+            zeroth::ServoId::RightKneePitch => Joint::RightKneePitch,
+            zeroth::ServoId::RightHipRoll => Err(eyre::eyre!("Unsupported servo id: {:?}", value))?,
+            zeroth::ServoId::LeftAnklePitch => Joint::LeftAnklePitch,
+            zeroth::ServoId::LeftHipRoll => Err(eyre::eyre!("Unsupported servo id: {:?}", value))?,
         })
     }
-}
-
-impl From<ServoId> for Joint {
-    fn from(value: ServoId) -> Self {
-        use zeroth::ServoId::*;
-        match value {
-            LeftHipPitch => Joint::LeftHipPitch,
-            LeftHipYaw => Joint::LeftHipYaw,
-            RightHipPitch => Joint::RightHipPitch,
-            RightHipYaw => Joint::RightHipYaw,
-            LeftKneePitch => Joint::LeftKneePitch,
-            LeftShoulderPitch => Joint::LeftShoulderPitch,
-            LeftShoulderYaw => Joint::LeftShoulderYaw,
-            RightShoulderPitch => Joint::RightShoulderPitch,
-            RightShoulderYaw => Joint::RightShoulderYaw,
-            LeftElbowYaw => Joint::LeftElbowYaw,
-            RightElbowYaw => Joint::RightElbowYaw,
-            RightAnklePitch => Joint::RightAnklePitch,
-            RightKneePitch => Joint::RightKneePitch,
-            RightHipRoll => todo!(),
-            LeftAnklePitch => Joint::LeftAnklePitch,
-            LeftHipRoll => todo!(),
-        }
-    }
-}
-
-pub trait Humanoid {
-    fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
-
-    fn translate(&self, joint: crate::humanoid::Joint, value: f32) -> f32;
-
-    fn detranslate(&self, joint: crate::humanoid::Joint, value: f32 ) -> f32;
-
-    fn get_joint(
-        &self,
-        joint: Joint,
-    ) -> impl std::future::Future<Output = eyre::Result<zeroth::JointPosition>> + Send;
-
-    fn set_joints(
-        &mut self,
-        joints: std::collections::BTreeMap<Joint, f32>,
-    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
-
-    fn set_joint(
-        &mut self,
-        joint: Joint,
-        value: f32,
-    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 }

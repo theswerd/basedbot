@@ -8,9 +8,10 @@ from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
 import traceback
-
+import time
 
 import rerun as rr
+import rerun.blueprint as rrb
 
 if os.path.exists('/dev/video0'):
     _camera = '/dev/video0'
@@ -58,61 +59,95 @@ POSE_LANDMARKS = {
     32: "right_foot_index"
 }
 
+POSE_CONNECTIONS = [
+    (11, 12),  # Left shoulder to right shoulder
+    (11, 13),  # Left shoulder to left elbow
+    (13, 15),  # Left elbow to left wrist
+    (12, 14),  # Right shoulder to right elbow
+    (14, 16),  # Right elbow to right wrist
+    (11, 23),  # Left shoulder to left hip
+    (12, 24),  # Right shoulder to right hip
+    (23, 24),  # Left hip to right hip
+    (23, 25),  # Left hip to left knee
+    (25, 27),  # Left knee to left ankle
+    (24, 26),  # Right hip to right knee
+    (26, 28),  # Right knee to right ankle
+]
 
-# def log_pose_to_rerun(pose):
-#     for idx, landmark in enumerate(pose):
-#         positions = np.array([[landmark.x, landmark.y, landmark.z]])
-#         colors = np.zeros_like(positions, dtype=np.uint8)
-#         # colors[:, 0] = np.linspace(0, 255, len(pose))  # Assign gradient colors
-#         # breakpoint()
-#         rr.log(f"pose_points_{POSE_LANDMARKS[idx]}", rr.Points3D(
-#             positions, colors=colors, radii=0.02))
+_parts_to_plot = list(range(11, 17))
+PLOT_PATHS = {
+    idx: f"/series/keypoints/{value}"
+    for idx, value in POSE_LANDMARKS.items() if idx in _parts_to_plot
+}
+
+
+def setup_timeseries_plot():
+    rr.send_blueprint(
+        rrb.Grid(
+            contents=[
+                rrb.TimeSeriesView(
+                    origin=plot_path,
+                    time_ranges=[
+                        rrb.VisibleTimeRange(
+                            "time",
+                            start=rrb.TimeRangeBoundary.cursor_relative(
+                                seconds=-3.0),
+                            end=rrb.TimeRangeBoundary.cursor_relative(),
+                        )
+                    ],
+                    plot_legend=rrb.PlotLegend(visible=False),
+                )
+                for _, plot_path in PLOT_PATHS.items()
+            ]
+        ),
+    )
+
 
 def log_pose_to_rerun(pose):
     for idx, landmark in enumerate(pose):
         # Create position for the bounding box center
-        center = np.array([[landmark.x, landmark.y, landmark.z]])
-        # Define a small half-size for the bounding box
-        half_size = [0.01, 0.01, 0.01]
-        # Assign a label to each bounding box
         label = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
 
-        # Log the bounding box
-        rr.log(f"pose_box_{label}", rr.Boxes3D(
-            centers=center,
-            half_sizes=[half_size],
-            radii=0.01,
-            colors=[(255, 255, 0)],  # Yellow color for bounding boxes
-            labels=[label]
-        ))
+        if (landmark.visibility < 0.5):
+            rr.log(f"/keypoints/pose_point_{label}", rr.Clear(recursive=True))
+            continue
 
         # Log the corresponding point for reference
         positions = np.array([[landmark.x, landmark.y, landmark.z]])
-        colors = np.zeros_like(positions, dtype=np.uint8)
-        rr.log(f"pose_point_{label}", rr.Points3D(
-            positions, colors=colors, radii=0.02))
+        # yellow color
+        colors = np.array([[255, 255, 0]])
+        rr.log(f"/keypoints/pose_point_{label}", rr.Points3D(
+            positions, colors=colors, radii=0.01, labels=[label]))
 
 
-def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    denominator = abs(pose[12].y - pose[14].y)
-    if denominator < 1e-6:
-        denominator = 1e-6
+def log_landmark_data_to_rerun(landmark_data):
+    for key, value in landmark_data.items():
+        key = int(key)
+        if key in _parts_to_plot:
+            rr.set_time_nanos("log_time", int(time.time() * 1e9))
+            plot_path = PLOT_PATHS[key]
+            rr.log(plot_path, rr.Scalar(value))
+
+
+def log_image_data_to_rerun(frame, depth_map):
+    rr.log("/image/tracked_keypoints", rr.Image(frame, color_model="bgr"))
+    rr.log("/image/depth_map", rr.Image(depth_map))
+
+
+def right_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     return math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / denominator))
 
 
-def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    denominator = abs(pose[11].y - pose[13].y)
-    if denominator < 1e-6:
-        denominator = 1e-6
+def left_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     return math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / denominator))
 
 
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    denominator = abs(pose[12].y - pose[14].y)
-    if denominator < 1e-6:
-        denominator = 1e-6
+    denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         (pose[12].z - pose[14].z) / denominator))
     print("y12 , 14", pose[12].y, pose[14].y)
@@ -122,19 +157,15 @@ def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
 
 
 def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    denominator = abs(pose[11].y - pose[13].y)
-    if denominator < 1e-6:
-        denominator = 1e-6
+    denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     return math.degrees(math.atan(
-        abs(pose[11].z - pose[13].z) / denominator))
+        (pose[11].z - pose[13].z) / denominator))
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
-    norm_product = np.linalg.norm(a) * np.linalg.norm(b)
-    if norm_product < 1e-6:
-        norm_product = 1e-6
+    norm_product = max(np.linalg.norm(a) * np.linalg.norm(b), 1e-6)
     return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
 
 
@@ -142,15 +173,14 @@ def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     norm_product = np.linalg.norm(a) * np.linalg.norm(b)
-    if norm_product < 1e-6:
-        norm_product = 1e-6
+    norm_product = max(norm_product, 1e-6)
     return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
 
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
     landmark_output = {
-        '15': right_shoulder_angle(pose),
-        '12': left_shoulder_angle(pose),
+        '15': right_shoulder_side_angle(pose),
+        '12': left_shoulder_side_angle(pose),
         '11': right_elbow_angle(pose),
         '16': left_elbow_angle(pose),
         '13': right_shoulder_forward_angle(pose),
@@ -167,6 +197,16 @@ def print_landmark_positions(result):
             name = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
+
+
+def clip_pose_data(pose_data):
+    clip_value = [0, 90]
+    for key, value in pose_data.items():
+        if value < clip_value[0]:
+            pose_data[key] = clip_value[0]
+        elif value > clip_value[1]:
+            pose_data[key] = clip_value[1]
+    return pose_data
 
 
 def draw_landmarks_with_labels(rgb_image, detection_result):
@@ -216,6 +256,7 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
 def main():
     print("Starting main")
     rr.init("rerun_example_my_data", spawn=True)
+    rr.log("/", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, static=True)
     # Initialize MediaPipe components
     BaseOptions = mp.tasks.BaseOptions
     PoseLandmarker = mp.tasks.vision.PoseLandmarker
@@ -278,14 +319,12 @@ def main():
                     modify_z_coordinates(image_pose, depth_map)
                     log_pose_to_rerun(pose)
                     landmark_data = compute_angles(pose)
+                    log_landmark_data_to_rerun(landmark_data)
+                    landmark_data = clip_pose_data(landmark_data)
                     pose_data.append(landmark_data)
-                # breakpoint()
 
-                # Display frame
-                cv2.imshow("MediaPipe Pose Landmarker", frame)
-                cv2.imshow("Depth Map", depth_map / 100.0)
-                cv2.moveWindow("MediaPipe Pose Landmarker", 0, 0)
-                cv2.moveWindow("Depth Map", frame.shape[1], 0)
+                depth_map_rendered = (depth_map * 100).astype(np.uint8)
+                log_image_data_to_rerun(frame, depth_map_rendered)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
