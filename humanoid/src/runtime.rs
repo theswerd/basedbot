@@ -26,6 +26,13 @@ impl<H: Humanoid> Runtime<H> {
         }
     }
 
+    pub fn overwrite(&mut self, frame: Frame) {
+        // Clear the queue
+        while let Some(_) = self.queue.pop() {}
+
+        self.current.replace(frame);
+    }
+
     pub fn advance(&mut self) -> bool {
         if let Some(frame) = self.queue.pop() {
             self.current.replace(frame);
