@@ -1,4 +1,5 @@
-
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
 from transformers import pipeline
 from PIL import Image
 import time
@@ -8,7 +9,7 @@ import numpy as np
 class DepthModel:
     def __init__(self):
         self.pipe = pipeline(task="depth-estimation",
-                             model="depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf")
+                             model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf")
 
     def pred_depth(self, image):
         """
@@ -27,3 +28,5 @@ class DepthModel:
         depth_array = np.array(depth_output["depth"])
 
         return depth_array
+    
+

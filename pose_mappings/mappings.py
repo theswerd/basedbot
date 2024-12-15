@@ -4,6 +4,7 @@ import mediapipe as mp
 import numpy as np
 import time
 import atexit
+from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
 
@@ -102,13 +103,6 @@ def print_landmark_positions(result):
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
 
-
-def result_callback(result, output_image, timestamp_ms):
-    global latest_result
-    latest_result = result
-    print_landmark_positions(result)  # This will print all landmark positions
-
-
 def draw_landmarks_with_labels(rgb_image, detection_result):
     annotated_image = np.copy(rgb_image)
 
@@ -164,11 +158,14 @@ def main():
     latest_result = None
 
     def result_callback(result, output_image: mp.Image, timestamp_ms: int):
+        # result is a mediapipe image
         nonlocal latest_result
-        latest_result = result
+        latest_result = {
+            "joints_2d": result,
+            "depth_map": None
+        }
 
-    def modify_z_coordinates(pose, frame):
-        depth_map = depth_model.pred_depth(frame)
+    def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
             pixel_y = int(landmark.y * frame.shape[0])
             pixel_x = int(landmark.x * frame.shape[1])
@@ -177,8 +174,7 @@ def main():
     options = PoseLandmarkerOptions(
         base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
         output_segmentation_masks=True,
-        running_mode=VisionRunningMode.LIVE_STREAM,
-        result_callback=result_callback
+        running_mode=VisionRunningMode.IMAGE
     )
 
     camera = cv2.VideoCapture(0)
@@ -199,21 +195,27 @@ def main():
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-
-                timestamp += 1
-                landmarker.detect_async(mp_image, timestamp)
-
+                
+                # Get detection results directly
+                detection_result = landmarker.detect(mp_image)
+                pil_image = Image.fromarray(frame)
+                depth_map = depth_model.pred_depth(pil_image)
                 # Draw landmarks if available
-                if latest_result is not None:
-                    frame = draw_landmarks_with_labels(frame, latest_result)
-                    if latest_result.pose_world_landmarks:
-                        pose = latest_result.pose_world_landmarks[0]
-                        # modify_z_coordinates(pose, frame)
-                        landmark_data = compute_angles(pose)
-                        pose_data.append(landmark_data)
+
+                frame = draw_landmarks_with_labels(frame, detection_result)
+                
+                if detection_result.pose_world_landmarks:
+                    pose = detection_result.pose_world_landmarks[0]
+                    modify_z_coordinates(pose, depth_map)
+                    landmark_data = compute_angles(pose)
+                    pose_data.append(landmark_data)
+
+                
 
                 # Display frame
                 cv2.imshow("MediaPipe Pose Landmarker", frame)
+                # show depth map
+                cv2.imshow("Depth Map", depth_map)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
