@@ -14,6 +14,7 @@ use axum::{
 
 pub mod humanoid;
 pub mod mini_robot;
+pub mod k_bot;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
