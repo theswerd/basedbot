@@ -4,9 +4,11 @@ use serde::{Deserialize, Serialize};
 pub enum Joint {
     LeftHipPitch,
     LeftHipYaw,
+    LeftHipRoll,
 
     RightHipPitch,
     RightHipYaw,
+    RightHipRoll,
 
     LeftKneePitch,
     LeftKneeYaw,
@@ -53,6 +55,8 @@ pub trait Humanoid {
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
     fn translate(&self, joint: Joint, value: f32) -> f32;
+
+    fn stabilize(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
     fn get_joint(
         &self,
