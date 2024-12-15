@@ -109,6 +109,11 @@ pub trait Humanoid {
         joint: Joint,
     ) -> impl std::future::Future<Output = eyre::Result<zeroth::JointPosition>> + Send;
 
+    fn set_joints(
+        &mut self,
+        joints: std::collections::BTreeMap<Joint, f32>,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
     fn set_joint(
         &mut self,
         joint: Joint,
