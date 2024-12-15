@@ -1,9 +1,17 @@
-use std::{collections::BTreeMap, io::Read, time::Duration};
+use std::{collections::BTreeMap, io::Read, sync::Arc, time::Duration};
 
 use ::humanoid::{Humanoid, Joint};
 use mini_robot::{Frame, MiniRobot};
+use serde::Deserialize;
 use serde_json::from_str;
 use zeroth::TorqueEnableSetting;
+
+use axum::{
+    extract::State,
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
 
 pub mod humanoid;
 pub mod mini_robot;
@@ -18,8 +26,6 @@ async fn main() -> eyre::Result<()> {
     };
 
     println!("Connected!");
-
-  
 
     client.enable_movement().await.unwrap();
 
@@ -37,9 +43,36 @@ async fn main() -> eyre::Result<()> {
     initial_position(&mut robot).await?;
     tokio::time::sleep(Duration::from_secs(2)).await;
 
-    let frames = file_to_frames(
-        "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion_2.json",
-    )?;
+    stream_frame_from_server(
+        robot.queue.clone(),
+    ).await?;
+
+    Ok(())
+}
+
+pub async fn stream_frame_from_server(
+    frame_queue:Arc<crossbeam::queue::SegQueue<Frame>>,
+) -> eyre::Result<()> {
+    let tcp_listener = tokio::net::TcpListener::bind("0.0.0.0:8020").await?;
+    let app = Router::new()
+        .route("/status", get(|| async { "OK" }))
+        .route("/frame", post(frame_handler))
+        .with_state(frame_queue.clone());
+
+    // run our app with hyper, listening globally on port 3000
+    // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+
+    println!("Listening on http://{}", tcp_listener.local_addr()?);
+
+    axum::serve(tcp_listener, app.into_make_service()).await.unwrap();
+
+    Ok(())
+}
+
+pub async fn load_and_run_frames(robot: &mut MiniRobot) {
+    let frames =
+        file_to_frames("/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/pose_data.json")
+            .unwrap();
 
     tokio::time::sleep(Duration::from_secs(1)).await;
 
@@ -49,23 +82,11 @@ async fn main() -> eyre::Result<()> {
 
     loop {
         println!("LOOPing {}", robot.queue.len());
-        let out = robot.step().await?;
+        let out = robot.step().await.unwrap();
         if !out {
             break;
         }
     }
-    // for frame in frames.iter() {
-    //     std::thread::sleep(Duration::from_millis(100));
-
-    //     for (joint, value) in &frame.joints {
-    //         robot.set_joint(joint.clone(), value.clone()).await.unwrap();
-    //     }
-    // }
-
-    // println!("FRAMES: {:?}", frames);
-    tokio::time::sleep(Duration::from_millis(200)).await;
-
-    Ok(())
 }
 
 pub fn file_to_frames(file: &str) -> eyre::Result<Vec<Frame>> {
@@ -81,28 +102,53 @@ pub fn file_to_frames(file: &str) -> eyre::Result<Vec<Frame>> {
         .clone();
     let mut frames: Vec<Frame> = Vec::new();
     for frame in json {
-        let frame = frame
-            .as_object()
-            .ok_or_else(|| eyre::eyre!("Expected JSON object"))?
-            .clone();
-        let mut joints = BTreeMap::new();
-        for (joint_id, joint_value) in frame.into_iter() {
-            let joint_servo_id = zeroth::ServoId::try_from(from_str::<i32>(&joint_id)?)?;
-            let humanoid_id: Joint = Joint::try_from(crate::humanoid::ServoId(joint_servo_id))?;
+        // let frame = frame
+        //     .as_object()
+        //     .ok_or_else(|| eyre::eyre!("Expected JSON object"))?
+        //     .clone();
+        // let mut joints = BTreeMap::new();
+        // for (joint_id, joint_value) in frame.into_iter() {
+        //     let joint_servo_id = zeroth::ServoId::try_from(from_str::<i32>(&joint_id)?)?;
+        //     let humanoid_id: Joint = Joint::try_from(crate::humanoid::ServoId(joint_servo_id))?;
 
-            joints.insert(
-                humanoid_id,
-                joint_value
-                    .as_f64()
-                    .ok_or_else(|| eyre::eyre!("Expected floating point value"))?
-                    as f32,
-            );
-            // frame.insert(joint
-        }
+        //     joints.insert(
+        //         humanoid_id,
+        //         joint_value
+        //             .as_f64()
+        //             .ok_or_else(|| eyre::eyre!("Expected floating point value"))?
+        //             as f32,
+        //     );
+        //     // frame.insert(joint
+        // }
+        let joints = frame_json_to_frame(frame).unwrap().joints;
+
         frames.push(Frame { joints });
     }
 
     Ok(frames)
+}
+
+pub fn frame_json_to_frame(frame_json: serde_json::Value) -> eyre::Result<Frame> {
+    let frame_json = frame_json
+        .as_object()
+        .ok_or_else(|| eyre::eyre!("Expected JSON object"))?
+        .clone();
+
+    let mut joints = BTreeMap::new();
+    for (joint_id, joint_value) in frame_json.into_iter() {
+        let joint_servo_id = zeroth::ServoId::try_from(from_str::<i32>(&joint_id)?)?;
+        let humanoid_id: Joint = Joint::try_from(crate::humanoid::ServoId(joint_servo_id))?;
+
+        joints.insert(
+            humanoid_id,
+            joint_value
+                .as_f64()
+                .ok_or_else(|| eyre::eyre!("Expected floating point value"))? as f32,
+        );
+        // frame.insert(joint
+    }
+
+    Ok(Frame { joints })
 }
 
 pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
@@ -125,37 +171,39 @@ pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
     initial_joints_btree.insert(Joint::RightKneeYaw, 45.0);
     initial_joints_btree.insert(Joint::RightKneePitch, 45.0);
     initial_joints_btree.insert(Joint::LeftHipPitch, 45.0); // recenter on 0
-    initial_joints_btree.insert(Joint::RightHipPitch, 45.0);// Reverse, recenter on 0
-    
+    initial_joints_btree.insert(Joint::RightHipPitch, 45.0); // Reverse, recenter on 0
 
     // initial_joints_btree.insert(Joint::RightKneePitch, -90.0);
 
     robot.set_joints(initial_joints_btree).await.unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::RightElbowYaw, 0.0)
-    //     .await
-    //     .unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::RightShoulderPitch, 0.0)
-    //     .await
-    //     .unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::RightShoulderYaw, 0.0)
-    //     .await
-    //     .unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::LeftElbowYaw, 0.0)
-    //     .await
-    //     .unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::LeftShoulderPitch, 0.0)
-    //     .await
-    //     .unwrap();
-    // robot
-    //     .set_joint(humanoid::Joint::LeftShoulderYaw, 0.0)
-    //     .await
-    //     .unwrap();
+
     Ok(())
 }
 
 // 0 -90 90
+
+async fn frame_handler(
+    State(frame_queue): State<Arc<crossbeam::queue::SegQueue<Frame>>>,
+    Json(payload): Json<FrameData>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let frame = frame_json_to_frame(payload.joints).unwrap();
+
+    frame_queue.push(frame);
+
+    (StatusCode::CREATED, Json(serde_json::json!({})))
+}
+
+// the input to our `create_user` handler
+#[derive(Deserialize, Debug)]
+struct FrameData {
+    joints: serde_json::Value,
+}
+
+/*
+{
+ joints: {
+ "15": 0.0,
+ }
+}
+
+*/
