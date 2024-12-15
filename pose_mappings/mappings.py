@@ -4,9 +4,15 @@ import mediapipe as mp
 import numpy as np
 import time
 import atexit
+import os
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
+
+if os.path.exists('/dev/video0'):
+    _camera = '/dev/video0'
+else:
+    _camera = 0
 
 POSE_LANDMARKS = {
     # Face/Head
@@ -177,7 +183,7 @@ def main():
         running_mode=VisionRunningMode.IMAGE
     )
 
-    camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture(_camera)
     timestamp = 0
     pose_data = []
     depth_model = DepthModel()

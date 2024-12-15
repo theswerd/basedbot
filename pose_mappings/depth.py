@@ -5,10 +5,14 @@ from PIL import Image
 import time
 import numpy as np
 
+if torch.cuda.is_available():
+    _device = 'cuda:0'
+else:
+    _device = 'mps'
 
 class DepthModel:
     def __init__(self):
-        self.pipe = pipeline(task="depth-estimation",
+        self.pipe = pipeline(task="depth-estimation", device=_device,
                              model="depth-anything/Depth-Anything-V2-Metric-Indoor-Base-hf")
 
     def pred_depth(self, image):
