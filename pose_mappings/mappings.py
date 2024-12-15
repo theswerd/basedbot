@@ -355,7 +355,7 @@ def main(stream: str = True):
                                       },
                                       headers={
                                           'Content-Type': 'application/json'},
-                                      timeout=0.1)
+                                      timeout=None)
                     else:
                         pose_data.append(landmark_data)
 
