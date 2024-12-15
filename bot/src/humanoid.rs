@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use zeroth::ServoId;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Joint {
@@ -76,8 +77,37 @@ impl Into<Option<zeroth::ServoId>> for Joint {
     }
 }
 
+impl From<ServoId> for Joint {
+    fn from(value: ServoId) -> Self {
+        use zeroth::ServoId::*;
+        match value {
+            LeftHipPitch => Joint::LeftHipPitch,
+            LeftHipYaw => Joint::LeftHipYaw,
+            RightHipPitch => Joint::RightHipPitch,
+            RightHipYaw => Joint::RightHipYaw,
+            LeftKneePitch => Joint::LeftKneePitch,
+            LeftShoulderPitch => Joint::LeftShoulderPitch,
+            LeftShoulderYaw => Joint::LeftShoulderYaw,
+            RightShoulderPitch => Joint::RightShoulderPitch,
+            RightShoulderYaw => Joint::RightShoulderYaw,
+            LeftElbowYaw => Joint::LeftElbowYaw,
+            RightElbowYaw => Joint::RightElbowYaw,
+            RightAnklePitch => Joint::RightAnklePitch,
+            RigntKneePitch => Joint::RightKneePitch,
+            RightHipRoll => todo!(),
+            LeftAnklePitch => Joint::LeftAnklePitch,
+            LeftHipRoll => todo!()
+        }
+    }
+}
+
 pub trait Humanoid {
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn get_joint(
+        &self,
+        joint: Joint,
+    ) -> impl std::future::Future<Output = eyre::Result<zeroth::JointPosition>> + Send;
 
     fn set_joint(
         &mut self,

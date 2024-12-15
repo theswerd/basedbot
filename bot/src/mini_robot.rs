@@ -6,8 +6,10 @@ use zeroth::JointPosition;
 use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
+use crate::movement::MovementState;
 
 pub struct MiniRobot {
+    state: MovementState,
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
     balancing_task: tokio::task::JoinHandle<()>,
@@ -59,10 +61,22 @@ impl MiniRobot {
         });
 
         MiniRobot {
+            state: MovementState::new(),
             client,
             calibration: Default::default(),
             balancing_task,
         }
+    }
+
+    pub async fn step_movement(&mut self) -> eyre::Result<()> {
+        let frame = self.state.step();
+
+        let mut done = true;
+        for (servo, delta) in frame.into_iter() {
+            self.set_joint(servo, delta).await?;
+        }
+
+        Ok(())
     }
 }
 
@@ -335,3 +349,4 @@ impl Humanoid for MiniRobot {
         Ok(())
     }
 }
+
