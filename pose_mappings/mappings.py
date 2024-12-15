@@ -128,32 +128,50 @@ def log_image_data_to_rerun(frame, depth_map):
 
 
 def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    numerator = abs(pose[12].x - pose[14].x)
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        abs(pose[12].x - pose[14].x) / denominator))
-    print(f"right shoulder side angle: {angle:.2f}")
+        numerator / denominator))
+    print(f"RIGHT YAW numeratorX: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
+    # scale magnitude based on the numerator
+    # mag=0 if numerator=0.1, mag=1 if numerator=0.5
+    min_numerator = 0.05
+    max_numerator = 0.25
+    magnitude = (numerator - min_numerator) / (max_numerator - min_numerator)
+    magnitude = min(magnitude, 1)
+    angle = angle * magnitude
     return angle
-
-
-def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
-    angle = math.degrees(math.atan(
-        abs(pose[11].x - pose[13].x) / denominator))
-    print(f"left shoulder side angle: {angle:.2f}")
-    return angle
-
 
 def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    numerator = abs(pose[12].z - pose[14].z)
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        abs(pose[12].z - pose[16].z) / denominator))
+        numerator / denominator))
+    print(f"RIGHT PITCH numeratorZ: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
+    # vector_magnitude = (math.sqrt(numerator**2 + denominator**2) / 0.05)
+    # angle = angle * min(vector_magnitude, 1)
     return angle
 
+def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    numerator = abs(pose[11].x - pose[13].x)
+    denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
+    angle = math.degrees(math.atan(
+        numerator / denominator))
+    min_numerator = 0.05
+    max_numerator = 0.25
+    magnitude = (numerator - min_numerator) / (max_numerator - min_numerator)
+    magnitude = min(magnitude, 1)
+    angle = angle * magnitude
+    return angle    
 
 def left_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    numerator = abs(pose[11].z - pose[13].z)
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
-    return math.degrees(math.atan(
-        (pose[11].z - pose[15].z) / denominator))
+    angle = math.degrees(math.atan(
+        numerator / denominator))
+    # vector_magnitude = (math.sqrt(numerator**2 + denominator**2) / 0.05)
+    # angle = angle * min(vector_magnitude, 1)
+    return angle
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -161,7 +179,6 @@ def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     norm_product = max(np.linalg.norm(a) * np.linalg.norm(b), 1e-6)
     angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
-    print(f"right elbow angle: {angle:.2f}")
     return angle
 
 
@@ -171,7 +188,6 @@ def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     norm_product = np.linalg.norm(a) * np.linalg.norm(b)
     norm_product = max(norm_product, 1e-6)
     angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
-    print(f"left elbow angle: {angle:.2f}")
     return angle
 
 
@@ -187,7 +203,7 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
 
     return landmark_output
 
-def low_pass_filter(data, alpha=0.1):
+def low_pass_filter(data, alpha=0.5):
     filtered_data = [data[0]]
     filtered_data.extend(
         {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
@@ -325,9 +341,9 @@ def main(stream: str = True):
                     modify_z_coordinates(image_pose, depth_map)
                     log_pose_to_rerun(pose)
                     landmark_data = compute_angles(pose)
-                    log_landmark_data_to_rerun(landmark_data)
                     landmark_data = clip_pose_data(landmark_data)
                     landmark_data = low_pass_filter([landmark_data])[0]
+                    log_landmark_data_to_rerun(landmark_data)
                     if stream:
                         requests.post(STREAM_ENDPOINT,
                                       json=landmark_data,
@@ -337,7 +353,7 @@ def main(stream: str = True):
                     else:
                         pose_data.append(landmark_data)
 
-                depth_map_rendered = (depth_map * 100).astype(np.uint8)
+                depth_map_rendered = (depth_map * 25).astype(np.uint8)
                 log_image_data_to_rerun(frame, depth_map_rendered)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
