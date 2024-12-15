@@ -178,6 +178,7 @@ dependencies = [
  "async-trait",
  "base64",
  "bytes",
+ "eyre",
  "hyper 0.14.31",
  "krec",
  "lazy_static",
