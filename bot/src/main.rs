@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, io::Read, time::Duration};
 use ::humanoid::{Humanoid, Joint};
 use mini_robot::{Frame, MiniRobot};
 use serde_json::from_str;
+use zeroth::TorqueEnableSetting;
 
 pub mod humanoid;
 pub mod mini_robot;
@@ -18,9 +19,12 @@ async fn main() -> eyre::Result<()> {
 
     println!("Connected!");
 
+  
+
     client.enable_movement().await.unwrap();
 
-    // client.enable_movement().await.unwrap();
+    // return Ok(());
+    // // client.enable_movement().await.unwrap();
 
     let mut robot = MiniRobot::new(client);
 
@@ -116,7 +120,16 @@ pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
     initial_joints_btree.insert(Joint::RightHipPitch, 0.0);
     initial_joints_btree.insert(Joint::LeftHipYaw, 90.0); // TODO: REVERSE
     initial_joints_btree.insert(Joint::RightHipYaw, 0.0);
-    // initial_joints_btree.insert(Joint::LeftKneeYaw, 0.0);
+    initial_joints_btree.insert(Joint::LeftKneeYaw, 45.0); // is center, move to 0
+    initial_joints_btree.insert(Joint::LeftKneePitch, 45.0);
+    initial_joints_btree.insert(Joint::RightKneeYaw, 45.0);
+    initial_joints_btree.insert(Joint::RightKneePitch, 45.0);
+    initial_joints_btree.insert(Joint::LeftHipPitch, 45.0); // recenter on 0
+    initial_joints_btree.insert(Joint::RightHipPitch, 45.0);// Reverse, recenter on 0
+    
+
+    // initial_joints_btree.insert(Joint::RightKneePitch, -90.0);
+
     robot.set_joints(initial_joints_btree).await.unwrap();
     // robot
     //     .set_joint(humanoid::Joint::RightElbowYaw, 0.0)

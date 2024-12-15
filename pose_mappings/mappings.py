@@ -127,7 +127,7 @@ def log_image_data_to_rerun(frame, depth_map):
     rr.log("/image/depth_map", rr.Image(depth_map))
 
 
-def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / denominator))
@@ -135,7 +135,7 @@ def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return angle
 
 
-def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     angle = math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / denominator))
@@ -177,8 +177,8 @@ def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
     landmark_output = {
-        '15': right_yaw_angle(pose),
-        '12': left_yaw_angle(pose),
+        '15': left_yaw_angle(pose),
+        '12': right_yaw_angle(pose),
         '11': right_elbow_angle(pose),
         '16': left_elbow_angle(pose),
         '13': right_pitch_angle(pose),
