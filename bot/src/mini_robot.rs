@@ -126,23 +126,26 @@ impl MiniRobot {
         println!("RUNNING CURRENT FRAME: {:?}", current);
         self.set_joints(current.joints.clone()).await.unwrap();
 
-        // println!("RAN SET JOINTS");
-       'outer: loop {
+
+        'outer: loop {
             std::thread::sleep(Duration::from_millis(100));
 
             // check if all joints are within a 5 degree of the target
             let mut done = true;
             for (joint, value) in &current.joints {
                 let current = self.get_joint(joint.clone()).await?;
-                let dist = (current.position - value).abs();
+                let joint_position = self.translate(joint.clone(),value.clone());
+                // let dist = (current.position - ).abs()).abs();
+                let dist = (current.position - joint_position).abs();
+            
                 let dist_check = dist > 10.0 ;
-                if current.speed > 10.0 || dist_check {
+                if current.speed > 10.0 && dist_check {
                     println!(
                         "Re-looping looping because {:?} is {} off, it is at {}, it wants to be at {} | {}",
                         current.id,
                         dist,
                         current.position,
-                        value,
+                        joint_position,
                         dist_check
                     );
                     done = false;
@@ -253,7 +256,7 @@ impl Humanoid for MiniRobot {
             .client
             .lock()
             .await
-            .get_servo_info(ServoId::LeftHipYaw)
+            .get_servo_info(ServoId::RightHipYaw)
             .await?
             .unwrap();
 
@@ -261,7 +264,7 @@ impl Humanoid for MiniRobot {
             .client
             .lock()
             .await
-            .get_servo_info(ServoId::LeftHipRoll)
+            .get_servo_info(ServoId::RightHipRoll)
             .await?
             .unwrap();
 
@@ -336,6 +339,8 @@ impl Humanoid for MiniRobot {
                     + self.calibration.right_hip_pitch_min
             }
             crate::humanoid::Joint::RightHipYaw => {
+
+                
                 value * (self.calibration.right_hip_yaw_max - self.calibration.right_hip_yaw_min)
                     / 90.0
                     + self.calibration.right_hip_yaw_min
@@ -410,7 +415,9 @@ impl Humanoid for MiniRobot {
             crate::humanoid::Joint::NeckYaw => todo!(),
         };
 
-        value.clamp(0.0, 90.0)
+        value
+
+        // value.clamp(0.0, 90.0)
     }
 
     async fn set_joint(&mut self, joint: crate::humanoid::Joint, value: f32) -> eyre::Result<()> {
@@ -418,6 +425,7 @@ impl Humanoid for MiniRobot {
             return Err(zeroth::Error::ServoNotFound.into());
         };
 
+        panic!("NO LONGER USED");
         let value = self.translate(joint.clone(), value.clone());
 
         self.client
@@ -426,7 +434,7 @@ impl Humanoid for MiniRobot {
             .set_position(JointPosition {
                 id: servo_id,
                 position: value,
-                speed: 100.,
+                speed: 50.0,
             })
             .await?;
 
@@ -446,10 +454,11 @@ impl Humanoid for MiniRobot {
                     .get_servo_info(ServoId::LeftHipPitch)
                     .await?
                     .unwrap();
+                println!("Base position: {:?}", position.current_position);
                 Ok(zeroth::JointPosition {
                     id: position.id.into(),
                     speed: position.speed,
-                    position: self.detranslate(joint.clone(), position.current_position),
+                    position:position.current_position,
                 })
             }
             crate::humanoid::Joint::LeftHipYaw => {
@@ -664,7 +673,7 @@ impl Humanoid for MiniRobot {
                         JointPosition {
                             id: servo_id.unwrap(),
                             position: self.translate(joint, value),
-                            speed: 100.0,
+                            speed: 1000.0,
                         }
                     })
                     .collect(),
@@ -675,69 +684,4 @@ impl Humanoid for MiniRobot {
         Ok(())
     }
 
-    fn detranslate(&self, joint: Joint, value: f32) -> f32 {
-        match joint {
-            Joint::LeftHipPitch => {
-                let min = self.calibration.left_hip_pitch_min;
-                let max = self.calibration.left_hip_pitch_max;
-                (value - min) * 90.0 / (max - min)
-            }
-            Joint::LeftHipYaw => {
-                let min = self.calibration.left_hip_yaw_min;
-                let max = self.calibration.left_hip_yaw_max;
-                (value - min) * 90.0 / (max - min)
-            }
-            Joint::RightHipPitch => {
-                let min = self.calibration.right_hip_pitch_min;
-                let max = self.calibration.right_hip_pitch_max;
-                (value - min) * 90.0 / (max - min)
-            }
-            Joint::RightHipYaw => {
-                let min = self.calibration.right_hip_yaw_min;
-                let max = self.calibration.right_hip_yaw_max;
-                (value - min) * 90.0 / (max - min)
-            }
-            Joint::LeftAnklePitch => {
-                let min = self.calibration.left_ankle_pitch_min;
-                let max = self.calibration.left_ankle_pitch_max;
-                ((value - min) * 90.0 / (max - min)) - 45.0
-            }
-            Joint::RightAnklePitch => {
-                let min = self.calibration.right_ankle_pitch_min;
-                let max = self.calibration.right_ankle_pitch_max;
-                ((value - min) * 90.0 / (max - min)) - 45.0
-            }
-            Joint::LeftShoulderPitch => {
-                let min = self.calibration.left_shoulder_pitch_min;
-                let max = self.calibration.left_shoulder_pitch_max;
-                ((value - min) * 90.0 / (max - min)) - 45.0
-            }
-            Joint::LeftShoulderYaw => {
-                let min = self.calibration.left_shoulder_yaw_min;
-                let max = self.calibration.left_shoulder_yaw_max;
-                (value - min) * 90.0 / (max - min)
-            }
-            Joint::RightShoulderPitch => {
-                let min = self.calibration.right_shoulder_pitch_min;
-                let max = self.calibration.right_shoulder_pitch_max;
-                45.0 - ((value - min) * 90.0 / (max - min))
-            }
-            Joint::RightShoulderYaw => {
-                let min = self.calibration.right_shoulder_yaw_min;
-                let max = self.calibration.right_shoulder_yaw_max;
-                90.0 - ((value - min) * 90.0 / (max - min))
-            }
-            Joint::LeftElbowYaw => {
-                let min = self.calibration.left_elbow_yaw_min;
-                let max = self.calibration.left_elbow_yaw_max;
-                ((value - min) * 180.0 / (max - min)) - 90.0
-            }
-            Joint::RightElbowYaw => {
-                let min = self.calibration.right_elbow_yaw_min;
-                let max = self.calibration.right_elbow_yaw_max;
-                90.0 - ((value - min) * 180.0 / (max - min))
-            }
-            _ => unimplemented!(),
-        }
     }
-}

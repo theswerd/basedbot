@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["sdk", "bot"]
+members = ["zeroth", "bot"]
 
 [workspace.dependencies]
 tokio = "1.42.0"

@@ -106,7 +106,6 @@ pub trait Humanoid {
 
     fn translate(&self, joint: crate::humanoid::Joint, value: f32) -> f32;
 
-    fn detranslate(&self, joint: crate::humanoid::Joint, value: f32 ) -> f32;
 
     fn get_joint(
         &self,
