@@ -33,7 +33,7 @@ class DepthModel:
         depth_output = self.pipe(image)
 
         # Convert PIL Image depth map to numpy array
-        depth_array = np.array(depth_output["depth"]) / 100.0
+        depth_array = np.array(depth_output["depth"]) / 25.0
 
         return depth_array
     

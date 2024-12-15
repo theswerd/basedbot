@@ -13,3 +13,4 @@ eyre = "0.6.12"
 serde_json.workspace = true
 serde = { workspace = true, features = ["derive"] }
 crossbeam = "0.8.4"
+axum = "0.7.9"
