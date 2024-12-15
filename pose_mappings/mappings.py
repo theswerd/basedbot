@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
+from types import MappingProxyType
 
 import rerun as rr
 import rerun.blueprint as rrb
@@ -24,7 +25,7 @@ if os.path.exists('/dev/video0'):
 else:
     _camera = 0
 
-MEDIAPIPE_POSE_LANDMARKS = {
+MEDIAPIPE_POSE_LANDMARKS = MappingProxyType({
     # Face/Head
     0: "nose",
     1: "left_eye_inner",
@@ -63,9 +64,9 @@ MEDIAPIPE_POSE_LANDMARKS = {
     30: "right_heel",
     31: "left_foot_index",
     32: "right_foot_index"
-}
+})
 
-POSE_CONNECTIONS = [
+POSE_CONNECTIONS = tuple([
     (11, 12),  # Left shoulder to right shoulder
     (11, 13),  # Left shoulder to left elbow
     (13, 15),  # Left elbow to left wrist
@@ -78,16 +79,16 @@ POSE_CONNECTIONS = [
     (25, 27),  # Left knee to left ankle
     (24, 26),  # Right hip to right knee
     (26, 28),  # Right knee to right ankle
-]
+])
 
-BOT_POSE_LANDMARKS = {
+BOT_POSE_LANDMARKS = MappingProxyType({
     15: "left_shoulder_yaw",
     12: "right_shoulder_yaw",
     11: "right_elbow_yaw",
     16: "left_elbow_yaw",
     13: "right_shoulder_pitch",
     14: "left_shoulder_pitch",
-}
+})
 
 _parts_to_plot = BOT_POSE_LANDMARKS.keys()
 PLOT_PATHS = {
