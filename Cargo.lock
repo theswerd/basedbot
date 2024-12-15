@@ -125,12 +125,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ayre"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25ce3202d7a887fe1aaac6e827e57af025115a55c9a12cf1d30edd3f6218ed88"
-
-[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,7 +180,6 @@ dependencies = [
 name = "bot"
 version = "0.1.0"
 dependencies = [
- "ayre",
  "bon",
  "crossbeam",
  "eyre",
