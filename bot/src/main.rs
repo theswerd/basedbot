@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, io::Read, sync::Arc, time::Duration};
 
-use ::humanoid::{Frame, Humanoid, Joint, Runtime};
+use ::humanoid::{Frame, FrameQueue, Humanoid, Joint, Runtime};
 use mini_robot::MiniRobot;
 use serde::Deserialize;
 use serde_json::from_str;
@@ -58,7 +58,7 @@ pub async fn stream_frame_from_server<H: Humanoid>(
     let app = Router::new()
         .route("/status", get(|| async { "OK" }))
         .route("/frame", post(frame_handler))
-        .with_state(robot.clone());
+        .with_state(robot.queue());
 
     // run our app with hyper, listening globally on port 3000
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -73,7 +73,7 @@ pub async fn stream_frame_from_server<H: Humanoid>(
     //     }
     // }).await.unwrap();
 
-    let handle = tokio::spawn(async {
+    let _handle = tokio::spawn(async {
         println!("Listening on http://{}", tcp_listener.local_addr().unwrap());
 
         axum::serve(tcp_listener, app.into_make_service())
@@ -211,8 +211,8 @@ pub async fn initial_position<H: Humanoid>(robot: &Runtime<H>) -> eyre::Result<(
 
 // 0 -90 90
 
-async fn frame_handler<H: Humanoid>(
-    State(mut frame_queue): State<Runtime<H>>,
+async fn frame_handler(
+    State(frame_queue): State<Arc<FrameQueue>>,
     Json(payload): Json<FrameData>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     println!("Received frame: {:?}", payload.joints);

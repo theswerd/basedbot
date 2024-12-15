@@ -10,12 +10,29 @@ pub struct Frame {
     pub joints: std::collections::BTreeMap<Joint, f32>,
 }
 
-struct RuntimeInner<H: Humanoid> {
-    robot: Mutex<H>,
+pub struct FrameQueue {
     current: AtomicCell<Option<Frame>>,
     // unfortunately need arc here due to axum constraints needing H: Send if we clone the whole
     // runtime
-    pub queue: Arc<crossbeam::queue::SegQueue<Frame>>,
+    pub queue: crossbeam::queue::SegQueue<Frame>,
+}
+
+impl FrameQueue {
+    pub fn push(&self, frame: Frame) {
+        self.queue.push(frame);
+    }
+
+    pub fn overwrite(&self, frame: Frame) {
+        // Clear the queue
+        while let Some(_) = self.queue.pop() {}
+
+        self.current.swap(Some(frame));
+    }
+}
+
+struct RuntimeInner<H: Humanoid> {
+    robot: Mutex<H>,
+    queue: Arc<FrameQueue>,
 }
 
 #[derive(Clone)]
@@ -28,43 +45,48 @@ impl<H: Humanoid> Runtime<H> {
         Self {
             inner: Arc::new(RuntimeInner {
                 robot: Mutex::new(robot),
-                current: AtomicCell::new(None),
-                queue: Arc::new(crossbeam::queue::SegQueue::new()),
+                queue: Arc::new(FrameQueue {
+                    current: AtomicCell::new(None),
+                    queue: crossbeam::queue::SegQueue::new(),
+                }),
             }),
         }
     }
 
-    pub fn queue(&self) -> Arc<crossbeam::queue::SegQueue<Frame>> {
+    pub fn queue(&self) -> Arc<FrameQueue> {
         self.inner.queue.clone()
     }
 
     pub fn queue_len(&self) -> usize {
-        self.inner.queue.len()
+        self.inner.queue.queue.len()
     }
 
-    pub fn overwrite(&mut self, frame: Frame) {
-        // Clear the queue
-        while let Some(_) = self.inner.queue.pop() {}
-
-        self.inner.current.swap(Some(frame));
+    pub fn overwrite(&self, frame: Frame) {
+        self.inner.queue.overwrite(frame);
     }
 
     pub fn advance(&mut self) -> bool {
-        if let Some(frame) = self.inner.queue.pop() {
-            self.inner.current.swap(Some(frame));
+        if let Some(frame) = self.inner.queue.queue.pop() {
+            self.inner.queue.current.swap(Some(frame));
             return true;
         }
         false
     }
 
     pub fn push_frame(&self, frame: Frame) {
-        self.inner.queue.push(frame);
+        self.inner.queue.queue.push(frame);
     }
 
     pub fn is_complete(&self, current_state: Frame) -> bool {
         // Safety: The pointer should never be null
-        if let Some(frame) = &unsafe { self.inner.current.as_ptr().as_ref().expect("non-null ptr") }
-        {
+        if let Some(frame) = &unsafe {
+            self.inner
+                .queue
+                .current
+                .as_ptr()
+                .as_ref()
+                .expect("non-null ptr")
+        } {
             return frame == &current_state;
         }
 
@@ -72,20 +94,20 @@ impl<H: Humanoid> Runtime<H> {
     }
 
     pub async fn step(&mut self) -> eyre::Result<bool> {
-        let current = match self.inner.current.take() {
+        let current = match self.inner.queue.current.take() {
             Some(current) => {
                 let frame = current.clone();
 
 
                 // If we have a current frame, push it back to the queue
                 // This is a hack because of the atomic cell usage
-                self.inner.current.store(Some(current));
+                self.inner.queue.current.store(Some(current));
 
                 frame
             }
             None => {
-                if let Some(next) = self.inner.queue.pop() {
-                    self.inner.current.store(Some(next.clone()));
+                if let Some(next) = self.inner.queue.queue.pop() {
+                    self.inner.queue.current.store(Some(next.clone()));
                     next
                 } else {
                     return Ok(false);
