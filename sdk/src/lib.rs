@@ -54,7 +54,7 @@ pub struct JointPosition {
 #[repr(i32)]
 pub enum ServoId {
     RightAnklePitch = 1,
-    RigntKneePitch = 2,
+    RightKneePitch = 2,
     RightHipRoll = 3,
     RightHipYaw = 4,
     RightHipPitch = 5,
