@@ -127,7 +127,7 @@ impl MiniRobot {
         self.set_joints(current.joints.clone()).await.unwrap();
 
         'outer: loop {
-            std::thread::sleep(Duration::from_millis(100));
+            tokio::time::sleep(Duration::from_millis(100)).await;
 
             // check if all joints are within a 5 degree of the target
             let mut done = true;
