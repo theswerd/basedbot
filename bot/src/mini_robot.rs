@@ -1,4 +1,5 @@
 use bon::Builder;
+use tokio::io::Join;
 use zeroth::JointPosition;
 use zeroth::ServoId;
 
@@ -196,7 +197,8 @@ impl Humanoid for MiniRobot {
 
     async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
         let calibration = self.calibration.clone().unwrap();
-        let yaw = (90.0 - yaw) * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
+        let yaw = (90.0 - yaw)
+            * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
             / 90.0
             + calibration.right_shoulder_yaw_min;
 
@@ -276,5 +278,43 @@ impl Humanoid for MiniRobot {
             .await;
         Ok(())
     }
-}
 
+    async fn set_right_shoulder_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+
+        let pitch = (45.0 - pitch)
+            * (calibration.right_shoulder_pitch_max - calibration.right_shoulder_pitch_min)
+            / 90.0
+            + calibration.right_shoulder_pitch_min;
+
+        self.client
+            .set_position(JointPosition {
+                id: ServoId::RightShoulderPitch,
+                speed: 100.0,
+                position: pitch,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn set_left_shoulder_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone().unwrap();
+        let pitch = (pitch + 45.0)
+            * (calibration.left_shoulder_pitch_max - calibration.left_shoulder_pitch_min)
+            / 90.0
+            + calibration.left_shoulder_pitch_min;
+
+        self.client
+            .set_position(JointPosition {
+                id: ServoId::LeftShoulderPitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+}
