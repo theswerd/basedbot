@@ -256,9 +256,21 @@ impl Humanoid for MiniRobot {
             crate::humanoid::Joint::LeftKneeYaw => todo!(),
             crate::humanoid::Joint::RightKneePitch => todo!(),
             crate::humanoid::Joint::RightKneeYaw => todo!(),
-            crate::humanoid::Joint::LeftAnklePitch => todo!(),
+            crate::humanoid::Joint::LeftAnklePitch => {
+                (value + 45.0)
+                    * (self.calibration.left_ankle_pitch_max
+                        - self.calibration.left_ankle_pitch_min)
+                    / 90.0
+                    + self.calibration.left_ankle_pitch_min
+            }
             crate::humanoid::Joint::LeftAnkleYaw => todo!(),
-            crate::humanoid::Joint::RightAnklePitch => todo!(),
+            crate::humanoid::Joint::RightAnklePitch => {
+                (value + 45.0)
+                    * (self.calibration.right_ankle_pitch_max
+                        - self.calibration.right_ankle_pitch_min)
+                    / 90.0
+                    + self.calibration.right_ankle_pitch_min
+            }
             crate::humanoid::Joint::RightAnkleYaw => todo!(),
             crate::humanoid::Joint::LeftShoulderPitch => {
                 (value + 45.0)
