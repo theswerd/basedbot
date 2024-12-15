@@ -122,7 +122,10 @@ impl Client {
     }
 
     pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
-        let res = self.inner.get_positions(kos_proto::Empty {}).await?;
+        let res = self
+            .inner
+            .get_positions(kos_proto::actuator::Empty {})
+            .await?;
         Ok(res
             .into_inner()
             .positions
@@ -137,10 +140,10 @@ impl Client {
 
     pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
         self.inner
-            .set_positions(kos_proto::JointPositions {
+            .set_positions(kos_proto::actuator::JointPositions {
                 positions: positions
                     .into_iter()
-                    .map(|p| kos_proto::JointPosition {
+                    .map(|p| kos_proto::actuator::JointPosition {
                         id: p.id.into(),
                         speed: p.speed,
                         position: p.position,
@@ -152,18 +155,22 @@ impl Client {
     }
 
     pub async fn enable_movement(&mut self) -> Result<(), Error> {
-        self.inner.enable_movement(kos_proto::Empty {}).await?;
+        self.inner
+            .enable_movement(kos_proto::actuator::Empty {})
+            .await?;
         Ok(())
     }
 
     pub async fn disable_movement(&mut self) -> Result<(), Error> {
-        self.inner.disable_movement(kos_proto::Empty {}).await?;
+        self.inner
+            .disable_movement(kos_proto::actuator::Empty {})
+            .await?;
         Ok(())
     }
 
     pub async fn set_position(&mut self, pos: JointPosition) -> Result<(), Error> {
         self.inner
-            .set_position(kos_proto::JointPosition {
+            .set_position(kos_proto::actuator::JointPosition {
                 id: pos.id.into(),
                 position: pos.position,
                 speed: pos.speed,
@@ -180,7 +187,7 @@ impl Client {
     pub async fn get_servo_info(&mut self, id: ServoId) -> Result<Option<ServoInfo>, Error> {
         let res = self
             .inner
-            .get_servo_info(kos_proto::ServoId { id: id.into() })
+            .get_servo_info(kos_proto::actuator::ServoId { id: id.into() })
             .await?;
 
         let res = match res.into_inner().result.take() {
@@ -189,7 +196,7 @@ impl Client {
         };
 
         let info = match res {
-            kos_proto::servo_info_response::Result::Info(info) => ServoInfo {
+            kos_proto::actuator::servo_info_response::Result::Info(info) => ServoInfo {
                 id,
                 temperature: info.temperature,
                 current: info.current,
@@ -199,7 +206,7 @@ impl Client {
                 min_position: info.min_position,
                 max_position: info.max_position,
             },
-            kos_proto::servo_info_response::Result::Error(err) => {
+            kos_proto::actuator::servo_info_response::Result::Error(err) => {
                 return Err(Error::Request {
                     message: err.message,
                 })
@@ -210,13 +217,13 @@ impl Client {
     }
 
     pub async fn scan(&mut self) -> Result<Vec<i32>, Error> {
-        let res = self.inner.scan(kos_proto::Empty {}).await?;
+        let res = self.inner.scan(kos_proto::actuator::Empty {}).await?;
         Ok(res.into_inner().ids)
     }
 
     pub async fn change_id(&mut self, from: u32, to: u32) -> Result<(), Error> {
         self.inner
-            .change_id(kos_proto::IdChange {
+            .change_id(kos_proto::actuator::IdChange {
                 old_id: from as i32,
                 new_id: to as i32,
             })
@@ -231,7 +238,7 @@ impl Client {
         current_threshold: f32,
     ) -> Result<(), Error> {
         self.inner
-            .start_calibration(kos_proto::CalibrationRequest {
+            .start_calibration(kos_proto::actuator::CalibrationRequest {
                 servo_id: servo as i32,
                 calibration_speed: speed,
                 current_threshold,
@@ -243,18 +250,22 @@ impl Client {
 
     pub async fn cancel_calibration(&mut self, servo: ServoId) -> Result<(), Error> {
         self.inner
-            .cancel_calibration(kos_proto::ServoId { id: servo as i32 })
+            .cancel_calibration(kos_proto::actuator::ServoId { id: servo as i32 })
             .await?;
         Ok(())
     }
 
     pub async fn start_video_stream(&mut self) -> Result<(), Error> {
-        self.inner.start_video_stream(kos_proto::Empty {}).await?;
+        self.inner
+            .start_video_stream(kos_proto::actuator::Empty {})
+            .await?;
         Ok(())
     }
 
     pub async fn stop_video_stream(&mut self) -> Result<(), Error> {
-        self.inner.stop_video_stream(kos_proto::Empty {}).await?;
+        self.inner
+            .stop_video_stream(kos_proto::actuator::Empty {})
+            .await?;
         Ok(())
     }
 
@@ -277,21 +288,21 @@ impl Client {
     pub async fn set_torque(&mut self, settings: Vec<TorqueSetting>) -> Result<(), Error> {
         let settings = settings
             .into_iter()
-            .map(|s| kos_proto::TorqueSetting {
+            .map(|s| kos_proto::actuator::TorqueSetting {
                 id: s.id.into(),
                 torque: s.torque,
             })
             .collect();
         self.inner
-            .set_torque(kos_proto::TorqueSettings { settings })
+            .set_torque(kos_proto::actuator::TorqueSettings { settings })
             .await?;
         Ok(())
     }
 
     pub async fn set_torque_single(&mut self, servo: ServoId, torque: f32) -> Result<(), Error> {
         self.inner
-            .set_torque(kos_proto::TorqueSettings {
-                settings: vec![kos_proto::TorqueSetting {
+            .set_torque(kos_proto::actuator::TorqueSettings {
+                settings: vec![kos_proto::actuator::TorqueSetting {
                     id: servo as i32,
                     torque,
                 }],
@@ -306,8 +317,8 @@ impl Client {
         enable: bool,
     ) -> Result<(), Error> {
         self.inner
-            .set_torque_enable(kos_proto::TorqueEnableSettings {
-                settings: vec![kos_proto::TorqueEnableSetting {
+            .set_torque_enable(kos_proto::actuator::TorqueEnableSettings {
+                settings: vec![kos_proto::actuator::TorqueEnableSetting {
                     id: servo.into(),
                     enable,
                 }],
@@ -322,61 +333,63 @@ impl Client {
     ) -> Result<(), Error> {
         let settings = settings
             .into_iter()
-            .map(|s| kos_proto::TorqueEnableSetting {
+            .map(|s| kos_proto::actuator::TorqueEnableSetting {
                 id: s.id.into(),
                 enable: s.enable,
             })
             .collect();
         self.inner
-            .set_torque_enable(kos_proto::TorqueEnableSettings { settings })
+            .set_torque_enable(kos_proto::actuator::TorqueEnableSettings { settings })
             .await?;
         Ok(())
     }
 
     pub async fn get_imu_data(&mut self) -> Result<ImuData, Error> {
-        let res = self.inner.get_imu_data(kos_proto::Empty {}).await?;
+        let res = self
+            .inner
+            .get_imu_data(kos_proto::actuator::Empty {})
+            .await?;
         Ok(res.into_inner())
     }
 
-    pub async fn upload_audio(
-        &mut self,
-        stream: impl IntoStreamingRequest<Message = AudioChunk>,
-    ) -> Result<String, Error> {
-        let res = self.inner.upload_audio(stream).await?;
-        Ok(res.into_inner().audio_id)
-    }
+    // pub async fn upload_audio(
+    //     &mut self,
+    //     stream: impl IntoStreamingRequest<Message = AudioChunk>,
+    // ) -> Result<String, Error> {
+    //     let res = self.inner.upload_audio(stream).await?;
+    //     Ok(res.into_inner().audio_id)
+    // }
 
-    pub async fn play_audio(&mut self, audio_id: String, volume: f32) -> Result<(), Error> {
-        self.inner
-            .play_audio(kos_proto::PlayRequest { audio_id, volume })
-            .await?;
-        Ok(())
-    }
+    // pub async fn play_audio(&mut self, audio_id: String, volume: f32) -> Result<(), Error> {
+    //     self.inner
+    //         .play_audio(kos_proto::actuator::PlayRequest { audio_id, volume })
+    //         .await?;
+    //     Ok(())
+    // }
 
-    pub async fn start_recording(
-        &mut self,
-        sample_rate: i32,
-        format: String,
-        channels: i32,
-    ) -> Result<(), Error> {
-        self.inner
-            .start_recording(kos_proto::RecordingConfig {
-                sample_rate,
-                format,
-                channels,
-            })
-            .await?;
-        Ok(())
-    }
+    // pub async fn start_recording(
+    //     &mut self,
+    //     sample_rate: i32,
+    //     format: String,
+    //     channels: i32,
+    // ) -> Result<(), Error> {
+    //     self.inner
+    //         .start_recording(kos_proto::actuator::RecordingConfig {
+    //             sample_rate,
+    //             format,
+    //             channels,
+    //         })
+    //         .await?;
+    //     Ok(())
+    // }
 
-    pub async fn stop_recording(&mut self) -> Result<(), Error> {
-        self.inner.stop_recording(kos_proto::Empty {}).await?;
-        Ok(())
-    }
+    // pub async fn stop_recording(&mut self) -> Result<(), Error> {
+    //     self.inner.stop_recording(kos_proto::actuator::Empty {}).await?;
+    //     Ok(())
+    // }
 
-    pub async fn get_recorded_audio(&mut self) -> Result<Streaming<AudioChunk>, Error> {
-        let res = self.inner.get_recorded_audio(kos_proto::Empty {}).await?;
+    // pub async fn get_recorded_audio(&mut self) -> Result<Streaming<AudioChunk>, Error> {
+    //     let res = self.inner.get_recorded_audio(kos_proto::actuator::Empty {}).await?;
 
-        Ok(res.into_inner())
-    }
+    // Ok(res.into_inner())
 }
