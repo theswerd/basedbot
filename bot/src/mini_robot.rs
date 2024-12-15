@@ -387,9 +387,20 @@ impl Humanoid for MiniRobot {
                     / 90.0
                     + self.calibration.right_hip_yaw_min
             }
-            humanoid::Joint::LeftKneePitch => todo!(),
+            humanoid::Joint::LeftKneePitch => {
+                value
+                    * (self.calibration.left_knee_pitch_max - self.calibration.left_knee_pitch_min)
+                    / 90.0
+                    + self.calibration.left_knee_pitch_min
+            }
             humanoid::Joint::LeftKneeYaw => todo!(),
-            humanoid::Joint::RightKneePitch => todo!(),
+            humanoid::Joint::RightKneePitch => {
+                value
+                    * (self.calibration.right_knee_pitch_max
+                        - self.calibration.right_knee_pitch_min)
+                    / 90.0
+                    + self.calibration.right_knee_pitch_min
+            }
             humanoid::Joint::RightKneeYaw => todo!(),
             humanoid::Joint::LeftAnklePitch => {
                 (value + 45.0)
