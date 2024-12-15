@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, io::Read, net::TcpStream, time::Duration};
 
 use humanoid::{Humanoid, Joint};
-use mini_robot::MiniRobot;
+use mini_robot::{Frame, MiniRobot};
 use serde_json::from_str;
 use tonic::{transport::Channel, Request};
 // use zeroth::{CalibrationRequest, JointPosition, ServoId, TorqueSetting, WifiCredentials};
@@ -20,23 +20,49 @@ async fn main() {
         Err(e) => panic!("Failed to connect to the server: {:?}", e),
     };
 
-    client.disable_movement().await.unwrap();
+    println!("Connected!");
+    // client.disable_movement().await.unwrap();
+
+    client.enable_movement().await.unwrap();
 
     let mut robot = MiniRobot::new(client);
 
     robot.calibrate().await.unwrap();
 
+    println!("Calibrated");
+
     std::thread::sleep(Duration::from_secs(1));
 
+    // initial_position(&mut robot).await;
+    // println!("In Initial Position");
+    // std::thread::sleep(Duration::from_secs(2));
+    // robot.enable_movement().await;
 
-    initial_position(&mut robot).await;
-
-
+    println!("YAWWWW {:?}, ", robot.get_joint(Joint::LeftShoulderYaw).await.unwrap());
+    let mut bt = BTreeMap::new();
+    bt.insert(Joint::LeftShoulderYaw, 89.555);
+    robot.set_joints(
+        bt
+    ).await.unwrap();
 
     let frames = file_to_frames(
         "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion.json",
     );
 
+    // std::thread::sleep(Duration::from_secs(1));
+
+    for frame in frames {
+        robot.push_frame(frame);
+    }
+
+    
+    // loop {
+    //     println!("LOOPING");
+    //     let out =  robot.step().await.unwrap();
+    //     if !out {
+    //         break;
+    //     }
+    // }
     // for frame in frames.iter() {
     //     std::thread::sleep(Duration::from_millis(100));
 
@@ -45,13 +71,8 @@ async fn main() {
     //     }
     // }
 
-    println!("FRAMES: {:?}", frames);
+    // println!("FRAMES: {:?}", frames);
     std::thread::sleep(Duration::from_millis(200));
-}
-
-#[derive(Debug)]
-pub struct Frame {
-    pub joints: BTreeMap<humanoid::Joint, f32>,
 }
 
 pub fn file_to_frames(file: &str) -> Vec<Frame> {
@@ -85,30 +106,38 @@ pub fn file_to_frames(file: &str) -> Vec<Frame> {
 }
 
 pub async fn initial_position(robot: &mut impl humanoid::Humanoid) {
-    robot
-        .set_joint(humanoid::Joint::RightElbowYaw, 0.0)
-        .await
-        .unwrap();
-    robot
-        .set_joint(humanoid::Joint::RightShoulderPitch, 0.0)
-        .await
-        .unwrap();
-    robot
-        .set_joint(humanoid::Joint::RightShoulderYaw, 0.0)
-        .await
-        .unwrap();
-    robot
-        .set_joint(humanoid::Joint::LeftElbowYaw, 0.0)
-        .await
-        .unwrap();
-    robot
-        .set_joint(humanoid::Joint::LeftShoulderPitch, 0.0)
-        .await
-        .unwrap();
-    robot
-        .set_joint(humanoid::Joint::LeftShoulderYaw, 0.0)
-        .await
-        .unwrap();
+    let mut initial_joints_btree = BTreeMap::new();
+    initial_joints_btree.insert(Joint::RightElbowYaw, 0.0);
+    initial_joints_btree.insert(Joint::RightShoulderPitch, 0.0);
+    initial_joints_btree.insert(Joint::RightShoulderYaw, 0.0);
+    initial_joints_btree.insert(Joint::LeftElbowYaw, 0.0);
+    initial_joints_btree.insert(Joint::LeftShoulderPitch, 0.0);
+    initial_joints_btree.insert(Joint::LeftShoulderYaw, 0.0);
+    robot.set_joints(initial_joints_btree).await.unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::RightElbowYaw, 0.0)
+    //     .await
+    //     .unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::RightShoulderPitch, 0.0)
+    //     .await
+    //     .unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::RightShoulderYaw, 0.0)
+    //     .await
+    //     .unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::LeftElbowYaw, 0.0)
+    //     .await
+    //     .unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::LeftShoulderPitch, 0.0)
+    //     .await
+    //     .unwrap();
+    // robot
+    //     .set_joint(humanoid::Joint::LeftShoulderYaw, 0.0)
+    //     .await
+    //     .unwrap();
 }
 
 // 0 -90 90

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use bon::Builder;
 use eyre::Ok;
@@ -22,6 +23,16 @@ pub struct MiniRobot {
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
     balancing_task: tokio::task::JoinHandle<()>,
+}
+
+impl MiniRobot {
+    pub async fn disable_movement(&mut self) {
+        self.client.lock().await.disable_movement().await.unwrap();
+    }
+
+    pub async fn enable_movement(&mut self ) {
+        self.client.lock().await.enable_movement().await.unwrap();
+    }
 }
 
 #[derive(Builder, Clone, Default)]
@@ -79,10 +90,12 @@ impl MiniRobot {
         }
     }
 
-    pub fn advance(&mut self) {
+    pub fn advance(&mut self) -> bool {
         if let Some(frame) = self.queue.pop() {
             self.current.replace(frame);
+            return true;
         }
+        false
     }
 
     pub fn push_frame(&self, frame: Frame) {
@@ -110,23 +123,31 @@ impl MiniRobot {
             }
         };
 
-        let mut done = true;
-        for (servo, _) in current.joints.clone().into_iter() {
-            let current = self.get_joint(servo).await?;
+        println!("RUNNING CURRENT FRAME: {:?}", current);
 
-            if current.speed.abs() != 0. {
-                done = false
+
+        // println!("RAN SET JOINTS");
+        loop {
+            std::thread::sleep(Duration::from_millis(100));
+            self.set_joints(current.joints.clone()).await.unwrap();
+
+            // check if all joints are within a 5 degree of the target
+            let mut done = true;
+            for (joint, value) in &current.joints {
+                let current = self.get_joint(joint.clone()).await?;
+                if (current.position - value).abs() > 5.0 {
+                    println!("RE-looping because {:?} is {} off, it is at {}, it wants to be at {}", current.id, (current.position - value).abs(), current.position, value);
+                    done = false;
+                    break;
+                }
+            }
+
+            if done {
+                break;
             }
         }
 
-        if done {
-            self.advance();
-            if let Some(current) = self.current.clone() {
-                self.set_joints(current.joints).await?;
-            }
-        }
-
-        Ok(true)
+        Ok(self.advance())
     }
 }
 
@@ -629,7 +650,7 @@ impl Humanoid for MiniRobot {
                         JointPosition {
                             id: servo_id.unwrap(),
                             position: value,
-                            speed: 100.,
+                            speed: 10.0,
                         }
                     })
                     .collect(),
