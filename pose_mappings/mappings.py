@@ -24,7 +24,7 @@ if os.path.exists('/dev/video0'):
 else:
     _camera = 0
 
-POSE_LANDMARKS = {
+MEDIAPIPE_POSE_LANDMARKS = {
     # Face/Head
     0: "nose",
     1: "left_eye_inner",
@@ -80,39 +80,25 @@ POSE_CONNECTIONS = [
     (26, 28),  # Right knee to right ankle
 ]
 
-_parts_to_plot = list(range(11, 17))
-PLOT_PATHS = {
-    idx: f"/series/keypoints/{value}"
-    for idx, value in POSE_LANDMARKS.items() if idx in _parts_to_plot
+BOT_POSE_LANDMARKS = {
+    15: "left_shoulder_yaw",
+    12: "right_shoulder_yaw",
+    11: "right_elbow_yaw",
+    16: "left_elbow_yaw",
+    13: "right_shoulder_pitch",
+    14: "left_shoulder_pitch",
 }
 
-
-def setup_timeseries_plot():
-    rr.send_blueprint(
-        rrb.Grid(
-            contents=[
-                rrb.TimeSeriesView(
-                    origin=plot_path,
-                    time_ranges=[
-                        rrb.VisibleTimeRange(
-                            "time",
-                            start=rrb.TimeRangeBoundary.cursor_relative(
-                                seconds=-3.0),
-                            end=rrb.TimeRangeBoundary.cursor_relative(),
-                        )
-                    ],
-                    plot_legend=rrb.PlotLegend(visible=False),
-                )
-                for _, plot_path in PLOT_PATHS.items()
-            ]
-        ),
-    )
-
+_parts_to_plot = BOT_POSE_LANDMARKS.keys()
+PLOT_PATHS = {
+    idx: f"/series/keypoints/{value}" 
+    for idx, value in BOT_POSE_LANDMARKS.items() if idx in _parts_to_plot
+}
 
 def log_pose_to_rerun(pose):
     for idx, landmark in enumerate(pose):
         # Create position for the bounding box center
-        label = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
+        label = MEDIAPIPE_POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
 
         if (landmark.visibility < 0.5):
             rr.log(f"/keypoints/pose_point_{label}", rr.Clear(recursive=True))
@@ -140,7 +126,7 @@ def log_image_data_to_rerun(frame, depth_map):
     rr.log("/image/depth_map", rr.Image(depth_map))
 
 
-def right_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / denominator))
@@ -148,7 +134,7 @@ def right_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return angle
 
 
-def left_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     angle = math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / denominator))
@@ -156,21 +142,17 @@ def left_shoulder_side_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return angle
 
 
-def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        (pose[12].z - pose[14].z) / denominator))
-    # print(f"x12: {pose[12].x}, x14: {pose[14].x}")
-    # print(f"y12: {pose[12].y}, y14: {pose[14].y}")
-    # print(f"z12: {pose[12].z}, z14: {pose[14].z}")
-    print(f"right shoulder forward angle: {angle:.2f}")
+        abs(pose[12].z - pose[16].z) / denominator))
     return angle
 
 
-def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+def left_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     return math.degrees(math.atan(
-        (pose[11].z - pose[13].z) / denominator))
+        (pose[11].z - pose[15].z) / denominator))
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -194,22 +176,30 @@ def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
     landmark_output = {
-        '15': right_shoulder_side_angle(pose),
-        '12': left_shoulder_side_angle(pose),
+        '15': left_yaw_angle(pose),
+        '12': right_yaw_angle(pose),
         '11': right_elbow_angle(pose),
         '16': left_elbow_angle(pose),
-        '13': right_shoulder_forward_angle(pose),
-        '14': left_shoulder_forward_angle(pose),
+        '13': right_pitch_angle(pose),
+        '14': left_pitch_angle(pose),
     }
 
     return landmark_output
+
+def low_pass_filter(data, alpha=0.1):
+    filtered_data = [data[0]]
+    filtered_data.extend(
+        {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
+        for i in range(1, len(data))
+    )
+    return filtered_data
 
 
 def print_landmark_positions(result):
     if result.pose_landmarks:
         pose = result.pose_landmarks[0]  # First person detected
         for idx, landmark in enumerate(pose):
-            name = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
+            name = MEDIAPIPE_POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
 
@@ -254,7 +244,7 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
             cv2.circle(annotated_image, (x, y), 5, (0, 255, 0), -1)
 
             # Add index and name
-            label = f"{idx}:{POSE_LANDMARKS[idx]}"
+            label = f"{idx}:{MEDIAPIPE_POSE_LANDMARKS[idx]}"
 
             # Make text background black for better visibility
             (w, h), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
@@ -336,6 +326,7 @@ def main(stream: str = True):
                     landmark_data = compute_angles(pose)
                     log_landmark_data_to_rerun(landmark_data)
                     landmark_data = clip_pose_data(landmark_data)
+                    landmark_data = low_pass_filter([landmark_data])[0]
                     if stream:
                         requests.post(STREAM_ENDPOINT,
                                       json=landmark_data,
@@ -356,12 +347,12 @@ def main(stream: str = True):
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()  # Print the full traceback
+
     finally:
         with open('pose_data.json', 'w') as f:
             json.dump(pose_data, f, indent=4)
         camera.release()
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     import argparse
