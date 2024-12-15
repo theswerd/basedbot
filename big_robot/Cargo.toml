@@ -4,10 +4,6 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
-[lib]
-name = "big_robot"
-path = "src/lib.rs"
-
 [dependencies]
 base64 = "0.22"
 bytes = "1"
@@ -20,13 +16,13 @@ prost-types = "0.13"
 async-trait = "0.1"
 rumqttc = "0.24"
 tokio = { version = "1", features = ["full"] }
-eyre = "0.6"
 hyper = "0.14"
 tracing = "0.1"
 lazy_static = "1.4"
 krec = "0.2"
+num_enum = "0.7.3"
+snafu = "0.8.5"
 
 [build-dependencies]
 tonic-build = "0.12"
 tonic.workspace = true
-
