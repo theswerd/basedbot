@@ -8,7 +8,7 @@ import numpy as np
 
 if torch.cuda.is_available():
     _device = 'cuda:0'
-    _model = "depth-anything/Depth-Anything-V2-Metric-Indoor-Large-hf"
+    _model = "depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf"
 else:
     _device = 'mps'
     _model = "depth-anything/Depth-Anything-V2-Metric-Indoor-Small-hf"
