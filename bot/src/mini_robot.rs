@@ -687,7 +687,7 @@ impl Humanoid for MiniRobot {
                         Ok(zeroth::JointPosition {
                             id: servo_id.0,
                             position: self.translate(joint, value),
-                            speed: 100.0,
+                            speed: 20.0,
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?,

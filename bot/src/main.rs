@@ -11,14 +11,14 @@ pub mod mini_robot;
 async fn main() -> eyre::Result<()> {
     let client = zeroth::Client::connect("grpc://192.168.42.1:50051").await;
 
-    let client = match client {
+    let mut client = match client {
         Ok(client) => client,
         Err(e) => panic!("Failed to connect to the server: {:?}", e),
     };
 
     println!("Connected!");
 
-    // client.disable_movement().await.unwrap();
+    client.enable_movement().await.unwrap();
 
     // client.enable_movement().await.unwrap();
 
@@ -43,13 +43,13 @@ async fn main() -> eyre::Result<()> {
         robot.push_frame(frame);
     }
 
-    // loop {
-    //     println!("LOOPing {}", robot.queue.len());
-    //     let out = robot.step().await?;
-    //     if !out {
-    //         break;
-    //     }
-    // }
+    loop {
+        println!("LOOPing {}", robot.queue.len());
+        let out = robot.step().await?;
+        if !out {
+            break;
+        }
+    }
     // for frame in frames.iter() {
     //     std::thread::sleep(Duration::from_millis(100));
 
@@ -116,6 +116,7 @@ pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
     initial_joints_btree.insert(Joint::RightHipPitch, 0.0);
     initial_joints_btree.insert(Joint::LeftHipYaw, 90.0); // TODO: REVERSE
     initial_joints_btree.insert(Joint::RightHipYaw, 0.0);
+    // initial_joints_btree.insert(Joint::LeftKneeYaw, 0.0);
     robot.set_joints(initial_joints_btree).await.unwrap();
     // robot
     //     .set_joint(humanoid::Joint::RightElbowYaw, 0.0)
