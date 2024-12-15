@@ -37,7 +37,7 @@ async fn main() -> eyre::Result<()> {
         "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion_2.json",
     )?;
 
-    std::thread::sleep(Duration::from_secs(1));
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     for frame in frames {
         robot.push_frame(frame);
