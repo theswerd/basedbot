@@ -10,7 +10,6 @@ use zeroth::JointPosition;
 
 pub mod humanoid;
 pub mod mini_robot;
-pub mod movement;
 
 #[tokio::main]
 async fn main() {
