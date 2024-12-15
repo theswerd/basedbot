@@ -211,6 +211,7 @@ dependencies = [
  "crossbeam",
  "eyre",
  "humanoid",
+ "kbot",
  "serde",
  "serde_json",
  "tokio",

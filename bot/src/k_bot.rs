@@ -11,19 +11,11 @@ use humanoid::JointPosition;
 
 #[derive(Clone)]
 pub struct KBot {
-    client: Arc<Mutex<zeroth::Client>>,
+    client: Arc<Mutex<kbot::Client>>,
     calibration: KBotCalibration,
 }
 
-impl KBot {
-    pub async fn disable_movement(&mut self) {
-        self.client.lock().await.disable_movement().await.unwrap();
-    }
 
-    pub async fn enable_movement(&mut self) {
-        self.client.lock().await.enable_movement().await.unwrap();
-    }
-}
 
 #[derive(Builder, Clone, Default)]
 pub struct KBotCalibration {
@@ -73,7 +65,7 @@ pub struct KBotCalibration {
 }
 
 impl KBot {
-    pub fn new(client: zeroth::Client) -> Self {
+    pub fn new(client: kbot::Client) -> Self {
         let client = Arc::new(tokio::sync::Mutex::new(client));
 
         KBot {
@@ -90,6 +82,7 @@ fn no_such_servo() -> eyre::Report {
 impl Humanoid for KBot {
     async fn calibrate(&mut self) -> eyre::Result<()> {
         // todo!()
+        todo!()
     }
 
     fn translate(&self, joint: Joint, value: f32) -> f32 {
@@ -105,7 +98,8 @@ impl Humanoid for KBot {
         &self,
         joint: Joint,
     ) ->eyre::Result<JointPosition> {
-        todo!()
+    //    self.client.lock().await.get
+    todo!("Not implemented")
     }
 
     async fn set_joints(
