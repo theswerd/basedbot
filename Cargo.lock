@@ -175,6 +175,7 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 name = "big_robot"
 version = "0.1.0"
 dependencies = [
+<<<<<<< HEAD
  "async-trait",
  "base64",
  "bytes",
@@ -193,6 +194,14 @@ dependencies = [
  "tonic-build",
  "tracing",
  "yaml-rust2",
+=======
+ "num_enum",
+ "prost",
+ "serde",
+ "snafu",
+ "tonic",
+ "tonic-build",
+>>>>>>> 703fa83 (added big robot sdk init)
 ]
 
 [[package]]
