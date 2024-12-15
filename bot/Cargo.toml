@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 zeroth = { path = "../zeroth" }
+humanoid = { path = "../humanoid" }
 tokio = { workspace = true, features = ["full"] }
 tonic = { workspace = true }
 bon = "3.3.0"
