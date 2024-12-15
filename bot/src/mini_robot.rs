@@ -132,7 +132,7 @@ impl MiniRobot {
         println!("RUNNING CURRENT FRAME: {:?}", current);
         self.set_joints(current.joints.clone()).await.unwrap();
 
-        'outer: loop {
+        loop {
             tokio::time::sleep(Duration::from_millis(100)).await;
 
             // check if all joints are within a 5 degree of the target
@@ -140,14 +140,10 @@ impl MiniRobot {
             for (joint, value) in &current.joints {
                 let current = self.get_joint(joint.clone()).await?;
                 let joint_position = self.translate(joint.clone(), value.clone());
-                // let dist = (current.position - ).abs()).abs();
                 let dist = (current.position - joint_position).abs();
 
                 let dist_check = dist > 10.0;
                 if current.speed > 10.0 && dist_check {
-                    //                 let dist = (current.position - value).abs();
-                    //                 let dist_check = dist > 10.0;
-                    //                 if current.speed > 10.0 || dist_check {
                     println!(
                         "Re-looping looping because {:?} is {} off, it is at {}, it wants to be at {} | {}",
                         current.joint,
@@ -157,7 +153,6 @@ impl MiniRobot {
                         dist_check
                     );
                     done = false;
-                    // break 'outer;
                 }
             }
 
