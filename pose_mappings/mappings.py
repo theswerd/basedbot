@@ -5,6 +5,7 @@ import numpy as np
 import time
 import atexit
 from mediapipe.framework.formats import landmark_pb2
+from depth import DepthModel
 
 POSE_LANDMARKS = {
     # Face/Head
@@ -47,31 +48,36 @@ POSE_LANDMARKS = {
     32: "right_foot_index"
 }
 
+
 def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y)))
+
 
 def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y)))
 
+
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array(abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y))
-    b = np.array(abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y))
+    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
+    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array(abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y))
-    b = np.array(abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y))
-    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
+    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
+    return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array(abs(pose[11].x - pose[13].x), abs(pose[11].y - pose[13].y))
-    b = np.array(abs(pose[15].x - pose[13].x), abs(pose[15].y - pose[13].y))
-    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
+    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
+    return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
+
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
-
     landmark_output = {
         '15': right_shoulder_angle(pose),
         '12': left_shoulder_angle(pose),
@@ -218,6 +224,7 @@ def draw_world_landmarks_on_image(rgb_image, detection_result):
 
 
 def main():
+    print("Starting main")
     # Initialize MediaPipe components
     BaseOptions = mp.tasks.BaseOptions
     PoseLandmarker = mp.tasks.vision.PoseLandmarker
@@ -226,21 +233,16 @@ def main():
 
     latest_result = None
 
-    def result_callback(result: mp.tasks.python.vision.PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    def result_callback(result, output_image: mp.Image, timestamp_ms: int):
         nonlocal latest_result
         latest_result = result
-        # print('pose landmarker result: {}'.format(result))
-        # if result.pose_landmarks:
-        #     pose = result.pose_landmarks[0]  # First person detected
 
-        #     # Get shoulder landmarks
-        #     left_shoulder = pose[11]   # Index 11 is left shoulder
-        #     right_shoulder = pose[12]  # Index 12 is right shoulder
-
-        # print(
-        #     f"\rLeft Shoulder:  x={left_shoulder.x:.2f}, y={left_shoulder.y:.2f}, z={left_shoulder.z:.2f}", end="")
-        # print(
-        #     f" | Right Shoulder: x={right_shoulder.x:.2f}, y={right_shoulder.y:.2f}, z={right_shoulder.z:.2f}", end="")
+    def modify_z_coordinates(pose, frame):
+        depth_map = depth_model.pred_depth(frame)
+        for landmark in pose:
+            pixel_y = int(landmark.y * frame.shape[0])
+            pixel_x = int(landmark.x * frame.shape[1])
+            landmark.z = depth_map[pixel_y][pixel_x]
 
     options = PoseLandmarkerOptions(
         base_options=BaseOptions(model_asset_path="pose_landmarker_lite.task"),
@@ -252,6 +254,7 @@ def main():
     camera = CameraManager(camera_id=0)
     timestamp = 0
     pose_data = []
+    depth_model = DepthModel()
     try:
         with PoseLandmarker.create_from_options(options) as landmarker:
             while True:
@@ -261,7 +264,6 @@ def main():
                     print("Failed to get frame after all retries")
                     break
 
-                # Process frame
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
@@ -272,9 +274,9 @@ def main():
                 # Draw landmarks if available
                 if latest_result is not None:
                     frame = draw_landmarks_with_labels(frame, latest_result)
-                    latest_result.pose_landmarks
-                    if latest_result.HasField('pose_world_landmarks'):
+                    if latest_result.pose_world_landmarks:
                         pose = latest_result.pose_world_landmarks[0]
+                        # modify_z_coordinates(pose, frame)
                         landmark_data = compute_angles(pose)
                         pose_data.append(landmark_data)
 
