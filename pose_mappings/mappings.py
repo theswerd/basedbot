@@ -204,6 +204,14 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
 
     return landmark_output
 
+def low_pass_filter(data, alpha=0.1):
+    filtered_data = [data[0]]
+    filtered_data.extend(
+        {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
+        for i in range(1, len(data))
+    )
+    return filtered_data
+
 
 def print_landmark_positions(result):
     if result.pose_landmarks:
@@ -336,6 +344,7 @@ def main(stream: str = True):
                     landmark_data = compute_angles(pose)
                     log_landmark_data_to_rerun(landmark_data)
                     landmark_data = clip_pose_data(landmark_data)
+                    landmark_data = low_pass_filter([landmark_data])[0]
                     if stream:
                         requests.post(STREAM_ENDPOINT,
                                       json=landmark_data,
@@ -358,29 +367,10 @@ def main(stream: str = True):
         traceback.print_exc()  # Print the full traceback
 
     finally:
-
-        def low_pass_filter(data, alpha=0.1):
-            filtered_data = []
-            for i, entry in enumerate(data):
-                if i == 0:
-                    filtered_data.append(entry)
-                else:
-                    previous_entry = filtered_data[-1]
-                    filtered_entry = {}
-                    for key in entry:
-                        filtered_entry[key] = alpha * entry[key] + (1 - alpha) * previous_entry[key]
-                    filtered_data.append(filtered_entry)
-            return filtered_data
-
-        pose_data = low_pass_filter(pose_data)
-
         with open('pose_data.json', 'w') as f:
             json.dump(pose_data, f, indent=4)
         camera.release()
         cv2.destroyAllWindows()
-
-
-
 
 if __name__ == "__main__":
     import argparse
