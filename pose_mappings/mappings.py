@@ -1,16 +1,23 @@
+import os
 import math
+import json
+import time
+import traceback
+import requests
+from dotenv import load_dotenv
 import cv2
 import mediapipe as mp
 import numpy as np
-import os
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
-import traceback
-import time
 
 import rerun as rr
 import rerun.blueprint as rrb
+
+load_dotenv()
+STREAM_ENDPOINT = os.getenv('STREAM_ENDPOINT', 'http://localhost:8080')
+
 
 if os.path.exists('/dev/video0'):
     _camera = '/dev/video0'
@@ -103,7 +110,8 @@ def log_pose_to_rerun(pose):
         colors = np.array([[255, 255, 0]])
         rr.log(f"/keypoints/pose_point_{label}", rr.Points3D(
             positions, colors=colors, radii=0.01, labels=[label]))
-        
+
+
 def log_landmark_data_to_rerun(landmark_data):
     for key, value in landmark_data.items():
         key = int(key)
@@ -112,6 +120,7 @@ def log_landmark_data_to_rerun(landmark_data):
             plot_path = PLOT_PATHS[key]
             rr.log(plot_path, rr.Scalar(value))
 
+
 def log_image_data_to_rerun(frame, depth_map):
     rr.log("/image/tracked_keypoints", rr.Image(frame, color_model="bgr"))
     rr.log("/image/depth_map", rr.Image(depth_map))
@@ -119,42 +128,50 @@ def log_image_data_to_rerun(frame, depth_map):
 
 def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
-    return math.degrees(math.atan(
+    angle = math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / denominator))
+    print(f"right shoulder side angle: {angle:.2f}")
+    return angle
 
 
 def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
-    return math.degrees(math.atan(
+    angle = math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / denominator))
+    print(f"left shoulder side angle: {angle:.2f}")
+    return angle
 
 
 def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        abs(pose[12].z - pose[14].z) / denominator))
+        abs(pose[12].z - pose[16].z) / denominator))
     return angle
 
 
 def left_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     return math.degrees(math.atan(
-        abs(pose[11].z - pose[13].z) / denominator))
+        (pose[11].z - pose[15].z) / denominator))
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     norm_product = max(np.linalg.norm(a) * np.linalg.norm(b), 1e-6)
-    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    print(f"right elbow angle: {angle:.2f}")
+    return angle
 
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
-    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
+    a = np.array([abs(pose[11].x - pose[13].x), abs(pose[11].y - pose[13].y)])
+    b = np.array([abs(pose[15].x - pose[13].x), abs(pose[15].y - pose[13].y)])
     norm_product = np.linalg.norm(a) * np.linalg.norm(b)
     norm_product = max(norm_product, 1e-6)
-    return math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    angle = math.degrees(math.acos(float(np.dot(a, b)) / norm_product))
+    print(f"left elbow angle: {angle:.2f}")
+    return angle
 
 
 def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -177,7 +194,8 @@ def print_landmark_positions(result):
             name = MEDIAPIPE_POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
             print(
                 f"{name}: x={landmark.x:.2f}, y={landmark.y:.2f}, z={landmark.z:.2f}")
-            
+
+
 def clip_pose_data(pose_data):
     clip_value = [0, 90]
     for key, value in pose_data.items():
@@ -232,7 +250,7 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
     return annotated_image
 
 
-def main():
+def main(stream: str = True):
     print("Starting main")
     rr.init("rerun_example_my_data", spawn=True)
     rr.log("/", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, static=True)
@@ -247,24 +265,22 @@ def main():
             # Convert normalized coordinates to pixel indices
             pixel_y = int(landmark.y * frame.shape[0])
             pixel_x = int(landmark.x * frame.shape[1])
-            
+
             # Clip indices to ensure they are within the valid range of the depth map
             pixel_y = np.clip(pixel_y, 0, depth_map.shape[0] - 1)
             pixel_x = np.clip(pixel_x, 0, depth_map.shape[1] - 1)
-            
+
             # Assign the depth value to the z-coordinate
             landmark.z = depth_map[pixel_y, pixel_x]
 
-
     options = PoseLandmarkerOptions(
         base_options=BaseOptions(
-            model_asset_path="pose_landmarker_heavy.task"),
+            model_asset_path="pose_landmarker_lite.task"),
         output_segmentation_masks=True,
         running_mode=VisionRunningMode.IMAGE
     )
 
     camera = cv2.VideoCapture(_camera)
-    timestamp = 0
     pose_data = []
     depth_model = DepthModel()
     try:
@@ -290,19 +306,26 @@ def main():
                 detection_result = landmarker.detect(mp_image)
                 pil_image = Image.fromarray(frame)
                 depth_map = depth_model.pred_depth(pil_image)
-                # Draw landmarks if available
 
+                # Draw landmarks if available
                 frame = draw_landmarks_with_labels(frame, detection_result)
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
                     image_pose = detection_result.pose_landmarks[0]
                     modify_z_coordinates(image_pose, depth_map)
-                    log_pose_to_rerun(pose)  # Log pose points to rerun
+                    log_pose_to_rerun(pose)
                     landmark_data = compute_angles(pose)
                     log_landmark_data_to_rerun(landmark_data)
                     landmark_data = clip_pose_data(landmark_data)
-                    pose_data.append(landmark_data)
+                    if stream:
+                        requests.post(STREAM_ENDPOINT,
+                                      json=landmark_data,
+                                      headers={
+                                          'Content-Type': 'application/json'},
+                                      timeout=0.1)
+                    else:
+                        pose_data.append(landmark_data)
 
                 depth_map_rendered = (depth_map * 100).astype(np.uint8)
                 log_image_data_to_rerun(frame, depth_map_rendered)
@@ -311,52 +334,20 @@ def main():
                     break
 
     except KeyboardInterrupt:
-        # Export pose data to JSON file
-        import json
-        with open('pose_data.json', 'w') as f:
-            json.dump(pose_data, f, indent=4)
-
         print("Interrupted by user")
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()  # Print the full traceback
-
     finally:
+        with open('pose_data.json', 'w') as f:
+            json.dump(pose_data, f, indent=4)
+        camera.release()
         cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    main()
-
-
-# def draw_world_landmarks_on_image(rgb_image, detection_result):
-#     pose_landmarks_list = detection_result.pose_world_landmarks
-#     annotated_image = np.copy(rgb_image)
-
-#     # Loop through the detected poses to visualize.
-#     for idx in range(len(pose_landmarks_list)):
-#         pose_landmarks = pose_landmarks_list[idx]
-
-#         # Scale world coordinates to image coordinates
-#         h, w = rgb_image.shape[:2]
-#         scaled_landmarks = []
-#         for landmark in pose_landmarks:
-#             # Scale x and y to image dimensions, discard z
-#             x = int(landmark.x * w)
-#             y = int(landmark.y * h)
-#             scaled_landmarks.append((x, y))
-
-#         # Draw connections between landmarks
-#         for connection in mp.solutions.pose.POSE_CONNECTIONS:
-#             start_idx = connection[0]
-#             end_idx = connection[1]
-#             cv2.line(annotated_image,
-#                      scaled_landmarks[start_idx],
-#                      scaled_landmarks[end_idx],
-#                      (0, 255, 0), 2)
-
-#         # Draw landmark points
-#         for point in scaled_landmarks:
-#             cv2.circle(annotated_image, point, 5, (0, 0, 255), -1)
-
-#     return annotated_image
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--stream', action='store_true')
+    args = parser.parse_args()
+    main(args.stream)
