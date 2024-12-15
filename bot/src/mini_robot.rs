@@ -335,3 +335,4 @@ impl Humanoid for MiniRobot {
         Ok(())
     }
 }
+

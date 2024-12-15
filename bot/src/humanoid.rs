@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use zeroth::ServoId;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Joint {
     LeftHipPitch,
     LeftHipYaw,
@@ -73,6 +74,30 @@ impl Into<Option<zeroth::ServoId>> for Joint {
             | Joint::NeckPitch
             | Joint::NeckYaw => None?,
         })
+    }
+}
+
+impl From<ServoId> for Joint {
+    fn from(value: ServoId) -> Self {
+        use zeroth::ServoId::*;
+        match value {
+            LeftHipPitch => Joint::LeftHipPitch,
+            LeftHipYaw => Joint::LeftHipYaw,
+            RightHipPitch => Joint::RightHipPitch,
+            RightHipYaw => Joint::RightHipYaw,
+            LeftKneePitch => Joint::LeftKneePitch,
+            LeftShoulderPitch => Joint::LeftShoulderPitch,
+            LeftShoulderYaw => Joint::LeftShoulderYaw,
+            RightShoulderPitch => Joint::RightShoulderPitch,
+            RightShoulderYaw => Joint::RightShoulderYaw,
+            LeftElbowYaw => Joint::LeftElbowYaw,
+            RightElbowYaw => Joint::RightElbowYaw,
+            RightAnklePitch => Joint::RightAnklePitch,
+            RigntKneePitch => Joint::RightKneePitch,
+            RightHipRoll => todo!(),
+            LeftAnklePitch => Joint::LeftAnklePitch,
+            LeftHipRoll => todo!()
+        }
     }
 }
 
