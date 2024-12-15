@@ -167,6 +167,11 @@ fn no_such_servo() -> eyre::Report {
 }
 
 impl Humanoid for MiniRobot {
+    async fn stabilize(&mut self) -> eyre::Result<()> {
+        println!("Stabilization not implemented");
+        Ok(())
+    }
+
     async fn calibrate(&mut self) -> eyre::Result<()> {
         // let left_shoulder_yaw_info = self.client.get_servo_info(id: ServoId::LeftShoulderYaw).await.unwrap().unwrap();
         // let right_shoulder_yaw_info = self.client.get_servo_info(12).await.unwrap().unwrap(); // Assuming ID 12 for right shoulder
