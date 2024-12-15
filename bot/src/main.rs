@@ -24,6 +24,8 @@ async fn main() {
     client.disable_movement().await.unwrap();
 
     let mut robot = MiniRobot::new(client);
+
+    
     robot.calibrate().await.unwrap();
 
     initial_position(&mut robot).await;
@@ -34,15 +36,7 @@ async fn main() {
         println!("FRAMES: {:?}", frames);
     std::thread::sleep(Duration::from_millis(200));
 
-    for frame in frames {
-        for (joint, position) in frame.joints {
-            if matches!(joint, Joint::LeftShoulderYaw) {
-                println!("LEFT SHOULDER YAW SET TO {}", position);
-                robot.set_joint(joint, position).await.unwrap();
-            }
-        }
-    }
-    // };
+
 }
 
 #[derive(Debug)]
