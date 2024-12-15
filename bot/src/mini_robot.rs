@@ -103,18 +103,19 @@ impl MiniRobot {
         };
 
         let mut done = true;
-        for (servo, value) in current.joints.clone().into_iter() {
+        for (servo, _) in current.joints.clone().into_iter() {
             let current = self.get_joint(servo).await?;
 
             if current.speed.abs() != 0. {
                 done = false
             }
-
-            self.set_joint(servo, value).await?;
         }
 
         if done {
             self.advance();
+            if let Some(current) = self.current.clone() {
+                self.set_joints(current.joints).await?;
+            }
         }
 
         Ok(())
@@ -608,19 +609,25 @@ impl Humanoid for MiniRobot {
     async fn set_joints(
         &mut self,
         joints: std::collections::BTreeMap<crate::humanoid::Joint, f32>,
-    ) ->  eyre::Result<()> {
-        self.client.lock().await.set_positions(
-            joints
-                .into_iter()
-                .map(|(joint, value)|  {
-                    let servo_id: Option<ServoId> = joint.into();
-                    JointPosition {
-                        id: servo_id.unwrap(),
-                        position: value,
-                        speed: 100.,
-                    }
-                }).collect()
-        ).await.unwrap();
+    ) -> eyre::Result<()> {
+        self.client
+            .lock()
+            .await
+            .set_positions(
+                joints
+                    .into_iter()
+                    .map(|(joint, value)| {
+                        let servo_id: Option<ServoId> = joint.into();
+                        JointPosition {
+                            id: servo_id.unwrap(),
+                            position: value,
+                            speed: 100.,
+                        }
+                    })
+                    .collect(),
+            )
+            .await
+            .unwrap();
 
         Ok(())
     }
