@@ -1359,6 +1359,7 @@ version = "0.1.0"
 dependencies = [
  "num_enum",
  "prost",
+ "serde",
  "snafu",
  "tonic",
  "tonic-build",

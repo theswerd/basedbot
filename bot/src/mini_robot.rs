@@ -1,12 +1,17 @@
+use std::sync::Arc;
+
 use bon::Builder;
+use tokio::io::Join;
+use tokio::sync::Mutex;
 use zeroth::JointPosition;
 use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
 
 pub struct MiniRobot {
-    client: zeroth::Client,
+    client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
+    balancing_task: tokio::task::JoinHandle<()>,
 }
 
 #[derive(Builder, Clone, Default)]
@@ -36,10 +41,23 @@ pub struct MiniRobotCalibration {
 
 impl MiniRobot {
     pub fn new(client: zeroth::Client) -> Self {
-        return MiniRobot {
+        let client = Arc::new(tokio::sync::Mutex::new(client));
+
+        let balancing_task = tokio::spawn(async move {
+            //
+        });
+
+        MiniRobot {
             client,
             calibration: Default::default(),
-        };
+            balancing_task,
+        }
+    }
+}
+
+impl Drop for MiniRobot {
+    fn drop(&mut self) {
+        self.balancing_task.abort();
     }
 }
 
@@ -49,70 +67,80 @@ impl Humanoid for MiniRobot {
         // let right_shoulder_yaw_info = self.client.get_servo_info(12).await.unwrap().unwrap(); // Assuming ID 12 for right shoulder
         let left_shoulder_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftShoulderYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftShoulderYaw)
+            .await?
             .unwrap();
         let right_shoulder_yaw_info = self
             .client
-            .get_servo_info(ServoId::RightShoulderYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::RightShoulderYaw)
+            .await?
             .unwrap();
         let right_elbow_yaw_info = self
             .client
-            .get_servo_info(ServoId::RightElbowYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::RightElbowYaw)
+            .await?
             .unwrap();
 
         let left_elbow_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftElbowYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftElbowYaw)
+            .await?
             .unwrap();
 
         let left_shoulder_pitch_info = self
             .client
-            .get_servo_info(ServoId::LeftShoulderPitch)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftShoulderPitch)
+            .await?
             .unwrap();
 
         let right_shoulder_pitch_info = self
             .client
-            .get_servo_info(ServoId::RightShoulderPitch)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::RightShoulderPitch)
+            .await?
             .unwrap();
 
         let left_hip_pitch_info = self
             .client
-            .get_servo_info(ServoId::LeftHipPitch)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftHipPitch)
+            .await?
             .unwrap();
 
         let left_hip_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftHipYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftHipYaw)
+            .await?
             .unwrap();
 
         let right_hip_pitch_info = self
             .client
-            .get_servo_info(ServoId::LeftHipPitch)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftHipPitch)
+            .await?
             .unwrap();
 
         let right_hip_yaw_info = self
             .client
-            .get_servo_info(ServoId::LeftHipYaw)
+            .lock()
             .await
-            .unwrap()
+            .get_servo_info(ServoId::LeftHipYaw)
+            .await?
             .unwrap();
 
         let calibration_builder = MiniRobotCalibration::builder()
@@ -150,6 +178,8 @@ impl Humanoid for MiniRobot {
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftShoulderYaw,
                 position: yaw,
@@ -166,6 +196,8 @@ impl Humanoid for MiniRobot {
             + self.calibration.left_elbow_yaw_min;
 
         self.client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftElbowYaw,
                 position: yaw,
@@ -183,6 +215,8 @@ impl Humanoid for MiniRobot {
             + self.calibration.right_elbow_yaw_min;
 
         self.client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::RightElbowYaw,
                 position: yaw,
@@ -194,13 +228,16 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_right_shoulder_yaw(&mut self, yaw: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone();
         let yaw = (90.0 - yaw)
-            * (self.calibration.right_shoulder_yaw_max - self.calibration.right_shoulder_yaw_min)
+            * (calibration.right_shoulder_yaw_max - calibration.right_shoulder_yaw_min)
             / 90.0
             + self.calibration.right_shoulder_yaw_min;
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::RightShoulderYaw, // Assuming ID 1 for right shoulder
                 position: yaw,
@@ -217,6 +254,8 @@ impl Humanoid for MiniRobot {
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftHipYaw,
                 position: yaw,
@@ -234,6 +273,8 @@ impl Humanoid for MiniRobot {
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftHipPitch,
                 position: pitch,
@@ -250,6 +291,8 @@ impl Humanoid for MiniRobot {
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftHipYaw,
                 position: yaw,
@@ -267,12 +310,57 @@ impl Humanoid for MiniRobot {
 
         let _ = self
             .client
+            .lock()
+            .await
             .set_position(JointPosition {
                 id: ServoId::LeftHipPitch,
                 position: pitch,
                 speed: 100.0,
             })
             .await;
+        Ok(())
+    }
+
+    async fn set_right_shoulder_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone();
+
+        let pitch = (45.0 - pitch)
+            * (calibration.right_shoulder_pitch_max - calibration.right_shoulder_pitch_min)
+            / 90.0
+            + calibration.right_shoulder_pitch_min;
+
+        self.client
+            .lock()
+            .await
+            .set_position(JointPosition {
+                id: ServoId::RightShoulderPitch,
+                speed: 100.0,
+                position: pitch,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn set_left_shoulder_pitch(&mut self, pitch: f32) -> eyre::Result<()> {
+        let calibration = self.calibration.clone();
+        let pitch = (pitch + 45.0)
+            * (calibration.left_shoulder_pitch_max - calibration.left_shoulder_pitch_min)
+            / 90.0
+            + calibration.left_shoulder_pitch_min;
+
+        self.client
+            .lock()
+            .await
+            .set_position(JointPosition {
+                id: ServoId::LeftShoulderPitch,
+                position: pitch,
+                speed: 100.0,
+            })
+            .await
+            .unwrap();
+
         Ok(())
     }
 }
