@@ -3,6 +3,7 @@ os.environ["PYTORCH_ENABLE_MPS_FALLBACK"]="1"
 from transformers import pipeline
 from PIL import Image
 import time
+import torch
 import numpy as np
 
 if torch.cuda.is_available():
@@ -29,7 +30,7 @@ class DepthModel:
         depth_output = self.pipe(image)
 
         # Convert PIL Image depth map to numpy array
-        depth_array = np.array(depth_output["depth"])
+        depth_array = np.array(depth_output["depth"]) / 100.0
 
         return depth_array
     

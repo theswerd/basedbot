@@ -6,6 +6,10 @@ import os
 from PIL import Image
 from mediapipe.framework.formats import landmark_pb2
 from depth import DepthModel
+import traceback
+
+
+import rerun as rr
 
 if os.path.exists('/dev/video0'):
     _camera = '/dev/video0'
@@ -54,6 +58,40 @@ POSE_LANDMARKS = {
 }
 
 
+# def log_pose_to_rerun(pose):
+#     for idx, landmark in enumerate(pose):
+#         positions = np.array([[landmark.x, landmark.y, landmark.z]])
+#         colors = np.zeros_like(positions, dtype=np.uint8)
+#         # colors[:, 0] = np.linspace(0, 255, len(pose))  # Assign gradient colors
+#         # breakpoint()
+#         rr.log(f"pose_points_{POSE_LANDMARKS[idx]}", rr.Points3D(
+#             positions, colors=colors, radii=0.02))
+
+def log_pose_to_rerun(pose):
+    for idx, landmark in enumerate(pose):
+        # Create position for the bounding box center
+        center = np.array([[landmark.x, landmark.y, landmark.z]])
+        # Define a small half-size for the bounding box
+        half_size = [0.01, 0.01, 0.01]
+        # Assign a label to each bounding box
+        label = POSE_LANDMARKS.get(idx, f"Unknown_{idx}")
+
+        # Log the bounding box
+        rr.log(f"pose_box_{label}", rr.Boxes3D(
+            centers=center,
+            half_sizes=[half_size],
+            radii=0.01,
+            colors=[(255, 255, 0)],  # Yellow color for bounding boxes
+            labels=[label]
+        ))
+
+        # Log the corresponding point for reference
+        positions = np.array([[landmark.x, landmark.y, landmark.z]])
+        colors = np.zeros_like(positions, dtype=np.uint8)
+        rr.log(f"pose_point_{label}", rr.Points3D(
+            positions, colors=colors, radii=0.02))
+
+
 def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = abs(pose[12].y - pose[14].y)
     if denominator < 1e-6:
@@ -74,8 +112,12 @@ def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = abs(pose[12].y - pose[14].y)
     if denominator < 1e-6:
         denominator = 1e-6
-    return math.degrees(math.atan(
+    angle = math.degrees(math.atan(
         abs(pose[12].z - pose[14].z) / denominator))
+    print("y12 , 14", pose[12].y, pose[14].y)
+    print("z12 , 14", pose[12].z, pose[14].z)
+    print("angle", angle)
+    return angle
 
 
 def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
@@ -172,6 +214,7 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
 
 def main():
     print("Starting main")
+    rr.init("rerun_example_my_data", spawn=True)
     # Initialize MediaPipe components
     BaseOptions = mp.tasks.BaseOptions
     PoseLandmarker = mp.tasks.vision.PoseLandmarker
@@ -180,12 +223,21 @@ def main():
 
     def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
+            # Convert normalized coordinates to pixel indices
             pixel_y = int(landmark.y * frame.shape[0])
             pixel_x = int(landmark.x * frame.shape[1])
-            landmark.z = depth_map[pixel_y][pixel_x]
+            
+            # Clip indices to ensure they are within the valid range of the depth map
+            pixel_y = np.clip(pixel_y, 0, depth_map.shape[0] - 1)
+            pixel_x = np.clip(pixel_x, 0, depth_map.shape[1] - 1)
+            
+            # Assign the depth value to the z-coordinate
+            landmark.z = depth_map[pixel_y, pixel_x]
+
 
     options = PoseLandmarkerOptions(
-        base_options=BaseOptions(model_asset_path="pose_landmarker_heavy.task"),
+        base_options=BaseOptions(
+            model_asset_path="pose_landmarker_heavy.task"),
         output_segmentation_masks=True,
         running_mode=VisionRunningMode.IMAGE
     )
@@ -223,15 +275,18 @@ def main():
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
-                    modify_z_coordinates(pose, depth_map)
+                    image_pose = detection_result.pose_landmarks[0]
+                    modify_z_coordinates(image_pose, depth_map)
+                    log_pose_to_rerun(pose)  # Log pose points to rerun
                     landmark_data = compute_angles(pose)
                     pose_data.append(landmark_data)
+                # breakpoint()
 
                 # Display frame
                 cv2.imshow("MediaPipe Pose Landmarker", frame)
-                cv2.imshow("Depth Map", depth_map)
-                cv2.moveWindow("MediaPipe Pose Landmarker", 0, 0) 
-                cv2.moveWindow("Depth Map", frame.shape[1], 0) 
+                cv2.imshow("Depth Map", depth_map / 100.0)
+                cv2.moveWindow("MediaPipe Pose Landmarker", 0, 0)
+                cv2.moveWindow("Depth Map", frame.shape[1], 0)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -245,6 +300,8 @@ def main():
         print("Interrupted by user")
     except Exception as e:
         print(f"An error occurred: {e}")
+        traceback.print_exc()  # Print the full traceback
+
     finally:
         cv2.destroyAllWindows()
 

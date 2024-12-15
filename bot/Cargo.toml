@@ -4,11 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-zeroth = { path = "../sdk" }
+zeroth = { path = "../zeroth" }
 tokio = { workspace = true, features = ["full"] }
 tonic = { workspace = true }
 bon = "3.3.0"
-ayre = "0.1.0"
 eyre = "0.6.12"
 serde_json.workspace = true
 serde = { workspace = true, features = ["derive"] }
