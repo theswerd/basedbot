@@ -165,6 +165,10 @@ impl Client {
     //
     //         ],
     //     }).await?;
+    //     let res = self
+    //         .inner
+    //         .get_positions(kos_proto::actuator::Empty {})
+    //         .await?;
     //     Ok(res
     //         .into_inner()
     //         .positions
@@ -176,7 +180,6 @@ impl Client {
     //         })
     //         .collect())
     // }
-
     // pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
     //     self.inner
     //         .set_positions(kos_proto::actuator::JointPositions {
@@ -291,6 +294,39 @@ impl Client {
     //     let res = self
     //         .inner
     //         .get_calibration_status(kos_proto::actuator::Empty {})
+    // pub async fn cancel_calibration(&mut self, servo: ServoId) -> Result<(), Error> {
+    //     self.inner
+    //         .cancel_calibration(kos_proto::actuator::ServoId { id: servo as i32 })
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn start_video_stream(&mut self) -> Result<(), Error> {
+    //     self.inner
+    //         .start_video_stream(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn stop_video_stream(&mut self) -> Result<(), Error> {
+    //     self.inner
+    //         .stop_video_stream(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn get_video_stream_urls(&mut self) -> Result<VideoStreamUrls, Error> {
+    //     let res = self
+    //         .inner
+    //         .get_video_stream_urls(kos_proto::Empty {})
+    //         .await?;
+    //     Ok(res.into_inner())
+    // }
+    //
+    // pub async fn get_calibration_status(&mut self) -> Result<CalibrationStatus, Error> {
+    //     let res = self
+    //         .inner
+    //         .get_calibration_status(kos_proto::Empty {})
     //         .await?;
     //     Ok(res.into_inner())
     // }
@@ -530,6 +566,14 @@ impl Client {
     //         .set_torque_enable(kos_proto::actuator::TorqueEnableSettings { settings })
     //         .await?;
     //     Ok(())
+    // }
+    //
+    // pub async fn get_imu_data(&mut self) -> Result<ImuData, Error> {
+    //     let res = self
+    //         .inner
+    //         .get_imu_data(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(res.into_inner())
     // }
 
     // pub async fn upload_audio(
