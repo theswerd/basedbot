@@ -142,7 +142,7 @@ impl Client {
     //         })
     //         .collect())
     // }
-    // // }
+    //
     // pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
     //     self.inner
     //         .set_positions(kos_proto::JointPositions {
