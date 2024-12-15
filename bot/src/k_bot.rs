@@ -1,10 +1,11 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bon::Builder;
 use eyre::Ok;
+use kbot::ServoId;
 use tokio::io::Join;
 use tokio::sync::Mutex;
-use zeroth::ServoId;
 
 use humanoid::Humanoid;
 use humanoid::Joint;
@@ -15,8 +16,6 @@ pub struct KBot {
     client: Arc<Mutex<kbot::Client>>,
     calibration: KBotCalibration,
 }
-
-
 
 #[derive(Builder, Clone, Default)]
 pub struct KBotCalibration {
@@ -82,43 +81,44 @@ fn no_such_servo() -> eyre::Report {
 
 impl Humanoid for KBot {
     async fn calibrate(&mut self) -> eyre::Result<()> {
-        // todo!()
-        todo!()
+        Ok(())
     }
 
     fn translate(&self, joint: Joint, value: f32) -> f32 {
-        todo!()
+        value
     }
 
     async fn stabilize(&mut self) -> eyre::Result<()> {
-        todo!()
-
+        Ok(())
     }
 
-    async fn get_joint(
-        &self,
-        joint: Joint,
-    ) ->eyre::Result<JointPosition> {
-       let mut client =  self.client.lock().await;
+    async fn get_joint(&self, joint: Joint) -> eyre::Result<JointPosition> {
+        let mut client = self.client.lock().await;
 
-    //    let res = client.get_actuator_state(
-    //     joint.into()
-    //    ).await?;
-        
+        //    let res = client.get_actuator_state(
+        //     joint.into()
+        //    ).await?;
+
         // Ok(JointPosition {
         //     joint,
         //     position: 0.0,
         //     speed: 0.0,
         // })
-        todo!()
     }
 
     async fn set_joints(
         &mut self,
         joints: std::collections::BTreeMap<Joint, f32>,
     ) -> eyre::Result<()> {
-        todo!()
+        let joints = joints
+            .into_iter()
+            .map(|(joint, value)| {
+                let servo_id: ServoId = joint.try_into()?;
+                Ok((servo_id, value))
+            })
+            .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+        self.client.lock().await.set_positions(joints).await?;
+        Ok(())
     }
 }
-
-
