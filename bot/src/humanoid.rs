@@ -21,16 +21,16 @@ impl TryFrom<Joint> for ServoId {
 
     fn try_from(value: Joint) -> Result<Self, Self::Error> {
         Ok(ServoId(match value {
-            Joint::LeftHipRoll => zeroth::ServoId::LeftHipRoll,
+            Joint::LeftKneeYaw => zeroth::ServoId::LeftHipRoll,
             Joint::LeftHipPitch => zeroth::ServoId::LeftHipPitch,
             Joint::LeftHipYaw => zeroth::ServoId::LeftHipYaw,
             Joint::RightHipPitch => zeroth::ServoId::RightHipPitch,
             Joint::RightHipYaw => zeroth::ServoId::RightHipYaw,
-            Joint::RightHipRoll => zeroth::ServoId::RightHipRoll,
+            Joint::RightKneeYaw => zeroth::ServoId::RightHipRoll,
             Joint::LeftKneePitch => zeroth::ServoId::LeftKneePitch,
-            Joint::LeftKneeYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::LeftHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
             Joint::RightKneePitch => zeroth::ServoId::RightAnklePitch,
-            Joint::RightKneeYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+            Joint::RightHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
             Joint::LeftAnklePitch => zeroth::ServoId::LeftAnklePitch,
             Joint::LeftAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
             Joint::RightAnklePitch => zeroth::ServoId::RightAnklePitch,
@@ -71,9 +71,9 @@ impl TryFrom<ServoId> for Joint {
             zeroth::ServoId::RightElbowYaw => Joint::RightElbowYaw,
             zeroth::ServoId::RightAnklePitch => Joint::RightAnklePitch,
             zeroth::ServoId::RightKneePitch => Joint::RightKneePitch,
-            zeroth::ServoId::RightHipRoll => Err(eyre::eyre!("Unsupported servo id: {:?}", value))?,
+            zeroth::ServoId::RightHipRoll => Joint::RightKneeYaw,
             zeroth::ServoId::LeftAnklePitch => Joint::LeftAnklePitch,
-            zeroth::ServoId::LeftHipRoll => Err(eyre::eyre!("Unsupported servo id: {:?}", value))?,
+            zeroth::ServoId::LeftHipRoll => Joint::LeftKneeYaw,
         })
     }
 }
