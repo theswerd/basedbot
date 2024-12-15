@@ -213,12 +213,11 @@ def main():
                     landmark_data = compute_angles(pose)
                     pose_data.append(landmark_data)
 
-                
-
                 # Display frame
                 cv2.imshow("MediaPipe Pose Landmarker", frame)
-                # show depth map
                 cv2.imshow("Depth Map", depth_map)
+                cv2.moveWindow("MediaPipe Pose Landmarker", 0, 0) 
+                cv2.moveWindow("Depth Map", frame.shape[1], 0) 
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
