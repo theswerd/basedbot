@@ -10,3 +10,4 @@ tonic = { workspace = true }
 bon = "3.3.0"
 ayre = "0.1.0"
 eyre = "0.6.12"
+serde = { version = "1.0.216", features = ["derive"] }
