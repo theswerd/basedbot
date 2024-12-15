@@ -131,6 +131,159 @@ impl Client {
     }
 
     // pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
+    //     let res = self.inner.(kos_proto::actuator::GetActuatorsStateRequest {
+    //         actuator_ids: vec![
+    //
+    //         ],
+    //     }).await?;
+    //     Ok(res
+    //         .into_inner()
+    //         .positions
+    //         .into_iter()
+    //         .map(|p| JointPosition {
+    //             id: p.id.try_into().expect("valid servo id"),
+    //             position: p.position,
+    //             speed: p.speed,
+    //         })
+    //         .collect())
+    // }
+
+    // pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
+    //     self.inner
+    //         .set_positions(kos_proto::actuator::JointPositions {
+    //             positions: positions
+    //                 .into_iter()
+    //                 .map(|p| kos_proto::actuator::JointPosition {
+    //                     id: p.id.into(),
+    //                     speed: p.speed,
+    //                     position: p.position,
+    //                 })
+    //                 .collect(),
+    //         })
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn enable_movement(&mut self) -> Result<(), Error> {
+    //     self.inner
+    //         .enable_movement(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn disable_movement(&mut self) -> Result<(), Error> {
+    //     self.inner
+    //         .disable_movement(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn set_position(&mut self, pos: JointPosition) -> Result<(), Error> {
+    //     self.inner
+    //         .set_position(kos_proto::actuator::JointPosition {
+    //             id: pos.id.into(),
+    //             position: pos.position,
+    //             speed: pos.speed,
+    //         })
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn set_wifi_info(&mut self, wifi_info: WifiCredentials) -> Result<(), Error> {
+    //     self.inner.set_wifi_info(wifi_info).await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn get_servo_info(&mut self, id: ServoId) -> Result<Option<ServoInfo>, Error> {
+    //     let res = self
+    //         .inner
+    //         .get_servo_info(kos_proto::actuator::ServoId { id: id.into() })
+    //         .await?;
+    //
+    //     let res = match res.into_inner().result.take() {
+    //         Some(info) => info,
+    //         None => return Ok(None),
+    //     };
+    //
+    //     let info = match res {
+    //         kos_proto::actuator::servo_info_response::Result::Info(info) => ServoInfo {
+    //             id,
+    //             temperature: info.temperature,
+    //             current: info.current,
+    //             voltage: info.voltage,
+    //             speed: info.speed,
+    //             current_position: info.current_position,
+    //             min_position: info.min_position,
+    //             max_position: info.max_position,
+    //         },
+    //         kos_proto::actuator::servo_info_response::Result::Error(err) => {
+    //             return Err(Error::Request {
+    //                 message: err.message,
+    //             })
+    //         }
+    //     };
+    //
+    //     Ok(Some(info))
+    // }
+    //
+    // pub async fn scan(&mut self) -> Result<Vec<i32>, Error> {
+    //     let res = self.inner.scan(kos_proto::actuator::Empty {}).await?;
+    //     Ok(res.into_inner().ids)
+    // }
+    //
+    // pub async fn change_id(&mut self, from: u32, to: u32) -> Result<(), Error> {
+    //     self.inner
+    //         .change_id(kos_proto::actuator::IdChange {
+    //             old_id: from as i32,
+    //             new_id: to as i32,
+    //         })
+    //         .await?;
+    //     Ok(())
+    // }
+    //
+    // pub async fn start_calibration(
+    //     &mut self,
+    //     servo: ServoId,
+    //     speed: i32,
+    //     current_threshold: f32,
+    // ) -> Result<(), Error> {
+    //     self.inner
+    //         .start_calibration(kos_proto::actuator::CalibrationRequest {
+    //             servo_id: servo as i32,
+    //             calibration_speed: speed,
+    //             current_threshold,
+    //         })
+    //         .await?;
+    //
+    //     Ok(())
+    // }
+    //
+    // pub async fn get_calibration_status(&mut self) -> Result<CalibrationStatus, Error> {
+    //     let res = self
+    //         .inner
+    //         .get_calibration_status(kos_proto::actuator::Empty {})
+    //         .await?;
+    //     Ok(res.into_inner())
+    // }
+    //
+    // pub async fn set_torque(&mut self, settings: Vec<TorqueSetting>) -> Result<(), Error> {
+    //     let settings = settings
+    //         .into_iter()
+    //         .map(|s| kos_proto::actuator::TorqueSetting {
+    //             id: s.id.into(),
+    //             torque: s.torque,
+    //         })
+    //         .collect();
+    //     self.inner
+    //         .configure_actuator(kos_proto::actuator::ConfigureActuatorRequest {
+    //             actuator_id: settings.id.into(),
+    //             torque_enabled: settings.enable,
+    //         })
+    //         .await?;
+    //     Ok(())
+    // }
+
+    // pub async fn get_positions(&mut self) -> Result<Vec<JointPosition>, Error> {
     //     let res = self
     //         .inner
     //         .get_positions(kos_proto::actuator::Empty {})
@@ -348,6 +501,14 @@ impl Client {
     //         .set_torque_enable(kos_proto::actuator::TorqueEnableSettings { settings })
     //         .await?;
     //     Ok(())
+    // }
+
+    // pub async fn get_imu_data(&mut self) -> Result<ImuValuesResponse, Error> {
+    //     let res = self
+    //         .imu
+    //         .get_values(tonic::IntoRequest::<ImuValuesResponse>::into_request(self))
+    //         .await?;
+    //     Ok(res.into_inner())
     // }
 
     // pub async fn upload_audio(
