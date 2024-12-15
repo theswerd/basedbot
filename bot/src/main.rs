@@ -33,17 +33,10 @@ async fn main() {
 
     std::thread::sleep(Duration::from_secs(1));
 
-    // initial_position(&mut robot).await;
-    // println!("In Initial Position");
-    // std::thread::sleep(Duration::from_secs(2));
-    // robot.enable_movement().await;
+    initial_position(&mut robot).await;
+    println!("In Initial Position");
+    std::thread::sleep(Duration::from_secs(2));
 
-    println!("YAWWWW {:?}, ", robot.get_joint(Joint::LeftShoulderYaw).await.unwrap());
-    let mut bt = BTreeMap::new();
-    bt.insert(Joint::LeftShoulderYaw, 89.555);
-    robot.set_joints(
-        bt
-    ).await.unwrap();
 
     let frames = file_to_frames(
         "/Users/benswerdlow/Documents/GitHub/basedbot/pose_mappings/flapping_motion.json",
@@ -56,13 +49,13 @@ async fn main() {
     }
 
     
-    // loop {
-    //     println!("LOOPING");
-    //     let out =  robot.step().await.unwrap();
-    //     if !out {
-    //         break;
-    //     }
-    // }
+    loop {
+        println!("LOOPing {}", robot.queue.len());
+        let out =  robot.step().await.unwrap();
+        if !out {
+            break;
+        }
+    }
     // for frame in frames.iter() {
     //     std::thread::sleep(Duration::from_millis(100));
 
