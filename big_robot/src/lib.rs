@@ -319,7 +319,6 @@ impl Client {
     //         .await?;
     //     Ok(())
     // }
-    //
     // pub async fn set_torque_enable_single(
     //     &mut self,
     //     servo: ServoId,
@@ -335,14 +334,12 @@ impl Client {
     //         .await?;
     //     Ok(())
     // }
-    //
     // pub async fn set_torque_enable(
     //     &mut self,
     //     settings: Vec<TorqueEnableSetting>,
     // ) -> Result<(), Error> {
     //     let settings = settings
     //         .into_iter()
-    //         .map(|s| kos_proto::actuator::TorqueEnableSetting {
     //             id: s.id.into(),
     //             enable: s.enable,
     //         })
@@ -351,14 +348,6 @@ impl Client {
     //         .set_torque_enable(kos_proto::actuator::TorqueEnableSettings { settings })
     //         .await?;
     //     Ok(())
-    // }
-    //
-    // pub async fn get_imu_data(&mut self) -> Result<ImuData, Error> {
-    //     let res = self
-    //         .inner
-    //         .get_imu_data(kos_proto::actuator::Empty {})
-    //         .await?;
-    //     Ok(res.into_inner())
     // }
 
     // pub async fn upload_audio(

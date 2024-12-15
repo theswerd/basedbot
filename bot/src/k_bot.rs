@@ -1,90 +1,90 @@
-// use std::sync::Arc;
+use std::sync::Arc;
 
-// use bon::Builder;
-// use eyre::Ok;
-// use tokio::sync::Mutex;
-// use zeroth::ServoId;
+use bon::Builder;
+use eyre::Ok;
+use tokio::sync::Mutex;
+use zeroth::ServoId;
 
-// use humanoid::Humanoid;
-// use humanoid::Joint;
-// use humanoid::JointPosition;
+use humanoid::Humanoid;
+use humanoid::Joint;
+use humanoid::JointPosition;
 
-// pub struct KBot {
-//     client: Arc<Mutex<zeroth::Client>>,
-//     calibration: KBotCalibration,
-// }
+pub struct KBot {
+    client: Arc<Mutex<zeroth::Client>>,
+    calibration: KBotCalibration,
+}
 
-// impl KBot {
-//     pub async fn disable_movement(&mut self) {
-//         self.client.lock().await.disable_movement().await.unwrap();
-//     }
+impl KBot {
+    pub async fn disable_movement(&mut self) {
+        self.client.lock().await.disable_movement().await.unwrap();
+    }
 
-//     pub async fn enable_movement(&mut self) {
-//         self.client.lock().await.enable_movement().await.unwrap();
-//     }
-// }
+    pub async fn enable_movement(&mut self) {
+        self.client.lock().await.enable_movement().await.unwrap();
+    }
+}
 
-// #[derive(Builder, Clone, Default)]
-// pub struct KBotCalibration {
-//     // shoulder
-//     pub left_shoulder_yaw_min: f32,
-//     pub left_shoulder_yaw_max: f32,
-//     pub left_elbow_yaw_min: f32,
-//     pub left_elbow_yaw_max: f32,
-//     pub right_elbow_yaw_min: f32,
-//     pub right_elbow_yaw_max: f32,
-//     pub left_shoulder_pitch_min: f32,
-//     pub left_shoulder_pitch_max: f32,
-//     pub right_shoulder_pitch_min: f32,
-//     pub right_shoulder_pitch_max: f32,
-//     pub right_shoulder_yaw_min: f32,
-//     pub right_shoulder_yaw_max: f32,
+#[derive(Builder, Clone, Default)]
+pub struct KBotCalibration {
+    // shoulder
+    pub left_shoulder_yaw_min: f32,
+    pub left_shoulder_yaw_max: f32,
+    pub left_elbow_yaw_min: f32,
+    pub left_elbow_yaw_max: f32,
+    pub right_elbow_yaw_min: f32,
+    pub right_elbow_yaw_max: f32,
+    pub left_shoulder_pitch_min: f32,
+    pub left_shoulder_pitch_max: f32,
+    pub right_shoulder_pitch_min: f32,
+    pub right_shoulder_pitch_max: f32,
+    pub right_shoulder_yaw_min: f32,
+    pub right_shoulder_yaw_max: f32,
 
-//     // hip
-//     pub left_hip_pitch_min: f32,
-//     pub left_hip_pitch_max: f32,
-//     pub left_hip_yaw_min: f32,
-//     pub left_hip_yaw_max: f32,
-//     // pub left_hip_roll_min: f32,
-//     // pub left_hip_roll_max: f32,
-//     pub right_hip_pitch_min: f32,
-//     pub right_hip_pitch_max: f32,
-//     pub right_hip_yaw_min: f32,
-//     pub right_hip_yaw_max: f32,
-//     // pub right_hip_roll_min: f32,
-//     // pub right_hip_roll_max: f32,
+    // hip
+    pub left_hip_pitch_min: f32,
+    pub left_hip_pitch_max: f32,
+    pub left_hip_yaw_min: f32,
+    pub left_hip_yaw_max: f32,
+    // pub left_hip_roll_min: f32,
+    // pub left_hip_roll_max: f32,
+    pub right_hip_pitch_min: f32,
+    pub right_hip_pitch_max: f32,
+    pub right_hip_yaw_min: f32,
+    pub right_hip_yaw_max: f32,
+    // pub right_hip_roll_min: f32,
+    // pub right_hip_roll_max: f32,
 
-//     // knee
-//     pub left_knee_pitch_min: f32,
-//     pub left_knee_pitch_max: f32,
-//     pub right_knee_pitch_min: f32,
-//     pub right_knee_pitch_max: f32,
-//     pub left_knee_yaw_min: f32,
-//     pub left_knee_yaw_max: f32,
-//     pub right_knee_yaw_min: f32,
-//     pub right_knee_yaw_max: f32,
+    // knee
+    pub left_knee_pitch_min: f32,
+    pub left_knee_pitch_max: f32,
+    pub right_knee_pitch_min: f32,
+    pub right_knee_pitch_max: f32,
+    pub left_knee_yaw_min: f32,
+    pub left_knee_yaw_max: f32,
+    pub right_knee_yaw_min: f32,
+    pub right_knee_yaw_max: f32,
 
-//     // ankle
-//     pub left_ankle_pitch_min: f32,
-//     pub left_ankle_pitch_max: f32,
-//     pub right_ankle_pitch_min: f32,
-//     pub right_ankle_pitch_max: f32,
-// }
+    // ankle
+    pub left_ankle_pitch_min: f32,
+    pub left_ankle_pitch_max: f32,
+    pub right_ankle_pitch_min: f32,
+    pub right_ankle_pitch_max: f32,
+}
 
-// impl KBot {
-//     pub fn new(client: zeroth::Client) -> Self {
-//         let client = Arc::new(tokio::sync::Mutex::new(client));
+impl KBot {
+    pub fn new(client: zeroth::Client) -> Self {
+        let client = Arc::new(tokio::sync::Mutex::new(client));
 
-//         KBot {
-//             client,
-//             calibration: Default::default(),
-//         }
-//     }
-// }
+        KBot {
+            client,
+            calibration: Default::default(),
+        }
+    }
+}
 
-// fn no_such_servo() -> eyre::Report {
-//     eyre::eyre!("No such servo")
-// }
+fn no_such_servo() -> eyre::Report {
+    eyre::eyre!("No such servo")
+}
 
 // impl Humanoid for KBot {
 //     async fn stabilize(&mut self) -> eyre::Result<()> {
