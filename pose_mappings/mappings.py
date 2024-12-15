@@ -176,14 +176,6 @@ def main():
 
     latest_result = None
 
-    def result_callback(result, output_image: mp.Image, timestamp_ms: int):
-        # result is a mediapipe image
-        nonlocal latest_result
-        latest_result = {
-            "joints_2d": result,
-            "depth_map": None
-        }
-
     def modify_z_coordinates(pose, depth_map):
         for landmark in pose:
             pixel_y = int(landmark.y * frame.shape[0])
@@ -208,7 +200,8 @@ def main():
                 ret, frame = camera.read()
 
                 # downsample 4x on the image
-                frame = cv2.resize(frame, (frame.shape[1] // 4, frame.shape[0] // 4))
+                frame = cv2.resize(
+                    frame, (frame.shape[1] // 4, frame.shape[0] // 4))
 
                 if not ret:
                     print("Failed to get frame after all retries")
