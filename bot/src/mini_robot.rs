@@ -4,12 +4,12 @@ use std::time::Duration;
 
 use bon::Builder;
 use eyre::Ok;
-use humanoid::JointPosition;
 use tokio::sync::Mutex;
 use zeroth::ServoId;
 
 use humanoid::Humanoid;
 use humanoid::Joint;
+use humanoid::JointPosition;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Frame {
@@ -324,6 +324,11 @@ impl Humanoid for MiniRobot {
 
     fn translate(&self, joint: Joint, value: f32) -> f32 {
         let value = match joint {
+            humanoid::Joint::LeftHipRoll => {
+                value * (self.calibration.left_hip_roll_max - self.calibration.left_hip_roll_min)
+                    / 90.0
+                    + self.calibration.left_hip_roll_min
+            }
             humanoid::Joint::LeftHipPitch => {
                 value * (self.calibration.left_hip_pitch_max - self.calibration.left_hip_pitch_min)
                     / 90.0
@@ -333,6 +338,11 @@ impl Humanoid for MiniRobot {
                 value * (self.calibration.left_hip_yaw_max - self.calibration.left_hip_yaw_min)
                     / 90.0
                     + self.calibration.left_hip_yaw_min
+            }
+            humanoid::Joint::RightHipRoll => {
+                value * (self.calibration.right_hip_roll_max - self.calibration.right_hip_roll_min)
+                    / 90.0
+                    + self.calibration.right_hip_roll_min
             }
             humanoid::Joint::RightHipPitch => {
                 value
@@ -422,6 +432,20 @@ impl Humanoid for MiniRobot {
 
     async fn get_joint(&self, joint: humanoid::Joint) -> eyre::Result<humanoid::JointPosition> {
         match joint {
+            humanoid::Joint::LeftHipRoll => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::LeftHipRoll)
+                    .await?
+                    .unwrap();
+                Ok(humanoid::JointPosition {
+                    joint,
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
             humanoid::Joint::LeftHipPitch => {
                 let position = self
                     .client
@@ -443,6 +467,20 @@ impl Humanoid for MiniRobot {
                     .lock()
                     .await
                     .get_servo_info(ServoId::LeftHipYaw)
+                    .await?
+                    .unwrap();
+                Ok(JointPosition {
+                    joint,
+                    speed: position.speed,
+                    position: position.current_position,
+                })
+            }
+            humanoid::Joint::RightHipRoll => {
+                let position = self
+                    .client
+                    .lock()
+                    .await
+                    .get_servo_info(ServoId::RightHipRoll)
                     .await?
                     .unwrap();
                 Ok(JointPosition {

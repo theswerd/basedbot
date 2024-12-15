@@ -21,10 +21,12 @@ impl TryFrom<Joint> for ServoId {
 
     fn try_from(value: Joint) -> Result<Self, Self::Error> {
         Ok(ServoId(match value {
+            Joint::LeftHipRoll => zeroth::ServoId::LeftHipRoll,
             Joint::LeftHipPitch => zeroth::ServoId::LeftHipPitch,
             Joint::LeftHipYaw => zeroth::ServoId::LeftHipYaw,
             Joint::RightHipPitch => zeroth::ServoId::RightHipPitch,
             Joint::RightHipYaw => zeroth::ServoId::RightHipYaw,
+            Joint::RightHipRoll => zeroth::ServoId::RightHipRoll,
             Joint::LeftKneePitch => zeroth::ServoId::LeftKneePitch,
             Joint::LeftKneeYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
             Joint::RightKneePitch => zeroth::ServoId::RightAnklePitch,

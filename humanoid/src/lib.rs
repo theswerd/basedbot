@@ -4,9 +4,11 @@ use serde::{Deserialize, Serialize};
 pub enum Joint {
     LeftHipPitch,
     LeftHipYaw,
+    LeftHipRoll,
 
     RightHipPitch,
     RightHipYaw,
+    RightHipRoll,
 
     LeftKneePitch,
     LeftKneeYaw,
