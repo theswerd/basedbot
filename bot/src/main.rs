@@ -186,8 +186,10 @@ async fn frame_handler(
     State(frame_queue): State<Arc<crossbeam::queue::SegQueue<Frame>>>,
     Json(payload): Json<FrameData>,
 ) -> (StatusCode, Json<serde_json::Value>) {
+    println!("Received frame: {:?}", payload.joints);
     let frame = frame_json_to_frame(payload.joints).unwrap();
 
+    println!("Received frame: {:?}", frame);
     frame_queue.push(frame);
 
     (StatusCode::CREATED, Json(serde_json::json!({})))
