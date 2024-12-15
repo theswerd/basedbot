@@ -334,11 +334,30 @@ def main():
     except Exception as e:
         print(f"An error occurred: {e}")
         traceback.print_exc()  # Print the full traceback
+
     finally:
+
+        def low_pass_filter(data, alpha=0.1):
+            filtered_data = []
+            for i, entry in enumerate(data):
+                if i == 0:
+                    filtered_data.append(entry)
+                else:
+                    previous_entry = filtered_data[-1]
+                    filtered_entry = {}
+                    for key in entry:
+                        filtered_entry[key] = alpha * entry[key] + (1 - alpha) * previous_entry[key]
+                    filtered_data.append(filtered_entry)
+            return filtered_data
+
+        pose_data = low_pass_filter(pose_data)
+
         with open('pose_data.json', 'w') as f:
             json.dump(pose_data, f, indent=4)
         camera.release()
         cv2.destroyAllWindows()
+
+
 
 
 if __name__ == "__main__":
