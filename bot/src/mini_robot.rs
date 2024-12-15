@@ -613,13 +613,14 @@ impl Humanoid for MiniRobot {
             joints
                 .into_iter()
                 .map(|(joint, value)|  {
+                    let servo_id: Option<ServoId> = joint.into();
                     JointPosition {
-                        id: joint.into().unwrap(),
+                        id: servo_id.unwrap(),
                         position: value,
                         speed: 100.,
                     }
                 }).collect()
-        );
+        ).await.unwrap();
 
         Ok(())
     }
