@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
-use std::time::Duration;
 
 use bon::Builder;
 use eyre::Ok;
@@ -11,14 +9,7 @@ use humanoid::Humanoid;
 use humanoid::Joint;
 use humanoid::JointPosition;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Frame {
-    pub joints: BTreeMap<Joint, f32>,
-}
-
 pub struct MiniRobot {
-    current: Option<Frame>,
-    pub queue: Arc<crossbeam::queue::SegQueue<Frame>>,
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
 }
@@ -85,80 +76,9 @@ impl MiniRobot {
         let client = Arc::new(tokio::sync::Mutex::new(client));
 
         MiniRobot {
-            current: None,
-            queue: Arc::new(crossbeam::queue::SegQueue::new()),
-            // last_tick: Instant::now(),
             client,
             calibration: Default::default(),
         }
-    }
-
-    pub fn advance(&mut self) -> bool {
-        if let Some(frame) = self.queue.pop() {
-            self.current.replace(frame);
-            return true;
-        }
-        false
-    }
-
-    pub fn push_frame(&self, frame: Frame) {
-        self.queue.push(frame);
-    }
-
-    pub fn is_complete(&self, current_state: Frame) -> bool {
-        if let Some(frame) = &self.current {
-            return frame == &current_state;
-        }
-
-        return false;
-    }
-
-    pub async fn step(&mut self) -> eyre::Result<bool> {
-        let current = match self.current.clone() {
-            Some(current) => current,
-            None => {
-                if let Some(next) = self.queue.pop() {
-                    self.current = Some(next.clone());
-                    next
-                } else {
-                    return Ok(false);
-                }
-            }
-        };
-
-        println!("RUNNING CURRENT FRAME: {:?}", current);
-        self.set_joints(current.joints.clone()).await.unwrap();
-
-        loop {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-
-            // check if all joints are within a 5 degree of the target
-            let mut done = true;
-            for (joint, value) in &current.joints {
-                let current = self.get_joint(joint.clone()).await?;
-                let joint_position = self.translate(joint.clone(), value.clone());
-                let dist = (current.position - joint_position).abs();
-
-                let dist_check = dist > 10.0;
-                if current.speed > 10.0 && dist_check {
-                    println!(
-                        "Re-looping looping because {:?} is {} off, it is at {}, it wants to be at {} | {}",
-                        current.joint,
-                        dist,
-                        current.position,
-                        joint_position,
-                        dist_check
-                    );
-                    done = false;
-                }
-            }
-
-            if done {
-                break;
-            }
-        }
-
-        Ok(self.advance())
     }
 }
 
