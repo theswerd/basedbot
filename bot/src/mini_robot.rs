@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bon::Builder;
@@ -6,10 +7,17 @@ use zeroth::JointPosition;
 use zeroth::ServoId;
 
 use crate::humanoid::Humanoid;
-use crate::movement::MovementState;
+use crate::humanoid::Joint;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Frame {
+    pub joints: BTreeMap<Joint, f32>,
+}
 
 pub struct MiniRobot {
-    state: MovementState,
+    current: Option<Frame>,
+    queue: Arc<crossbeam::queue::SegQueue<Frame>>,
+    // last_tick: Instant,
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
     balancing_task: tokio::task::JoinHandle<()>,
@@ -61,19 +69,51 @@ impl MiniRobot {
         });
 
         MiniRobot {
-            state: MovementState::new(),
+            current: None,
+            queue: Arc::new(crossbeam::queue::SegQueue::new()),
+            // last_tick: Instant::now(),
             client,
             calibration: Default::default(),
             balancing_task,
         }
     }
 
-    pub async fn step_movement(&mut self) -> eyre::Result<()> {
-        let frame = self.state.step();
+    pub fn advance(&mut self) {
+        if let Some(frame) = self.queue.pop() {
+            self.current.replace(frame);
+        }
+    }
+
+    pub fn push_frame(&self, frame: Frame) {
+        self.queue.push(frame);
+    }
+
+    pub fn is_complete(&self, current_state: Frame) -> bool {
+        if let Some(frame) = &self.current {
+            return frame == &current_state;
+        }
+
+        return false;
+    }
+
+    pub async fn step(&mut self) -> eyre::Result<()> {
+        let Some(current) = &self.current.clone() else {
+            return Ok(());
+        };
 
         let mut done = true;
-        for (servo, delta) in frame.into_iter() {
-            self.set_joint(servo, delta).await?;
+        for (servo, value) in current.joints.clone().into_iter() {
+            let current = self.get_joint(servo).await?;
+
+            if current.speed.abs() != 0. {
+                done = false
+            }
+
+            self.set_joint(servo, value).await?;
+        }
+
+        if done {
+            self.advance();
         }
 
         Ok(())
@@ -366,7 +406,7 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
+            }
             crate::humanoid::Joint::LeftHipYaw => {
                 let position = self
                     .client
@@ -423,9 +463,7 @@ impl Humanoid for MiniRobot {
                     position: position.current_position,
                 })
             }
-            crate::humanoid::Joint::LeftKneeYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
+            crate::humanoid::Joint::LeftKneeYaw => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::RightKneePitch => {
                 let position = self
                     .client
@@ -440,10 +478,7 @@ impl Humanoid for MiniRobot {
                     position: position.current_position,
                 })
             }
-            crate::humanoid::Joint::RightKneeYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-                
-            },
+            crate::humanoid::Joint::RightKneeYaw => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::LeftAnklePitch => {
                 let position = self
                     .client
@@ -458,9 +493,7 @@ impl Humanoid for MiniRobot {
                     position: position.current_position,
                 })
             }
-            crate::humanoid::Joint::LeftAnkleYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            },
+            crate::humanoid::Joint::LeftAnkleYaw => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::RightAnklePitch => {
                 let position = self
                     .client
@@ -475,9 +508,7 @@ impl Humanoid for MiniRobot {
                     position: position.current_position,
                 })
             }
-            crate::humanoid::Joint::RightAnkleYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            },
+            crate::humanoid::Joint::RightAnkleYaw => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::LeftShoulderPitch => {
                 let position = self
                     .client
@@ -491,7 +522,7 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
+            }
             crate::humanoid::Joint::LeftShoulderYaw => {
                 let position = self
                     .client
@@ -505,7 +536,7 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
+            }
             crate::humanoid::Joint::RightShoulderPitch => {
                 let position = self
                     .client
@@ -519,7 +550,7 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
+            }
             crate::humanoid::Joint::RightShoulderYaw => {
                 let position = self
                     .client
@@ -533,10 +564,8 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
-            crate::humanoid::Joint::LeftElbowPitch => {
-                Err(zeroth::Error::ServoNotFound.into())
-            },
+            }
+            crate::humanoid::Joint::LeftElbowPitch => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::LeftElbowYaw => {
                 let position = self
                     .client
@@ -550,10 +579,8 @@ impl Humanoid for MiniRobot {
                     speed: position.speed,
                     position: position.current_position,
                 })
-            },
-            crate::humanoid::Joint::RightElbowPitch => {
-                Err(zeroth::Error::ServoNotFound.into())
-            },
+            }
+            crate::humanoid::Joint::RightElbowPitch => Err(zeroth::Error::ServoNotFound.into()),
             crate::humanoid::Joint::RightElbowYaw => {
                 let position = self
                     .client
@@ -568,25 +595,12 @@ impl Humanoid for MiniRobot {
                     position: position.current_position,
                 })
             }
-            crate::humanoid::Joint::LeftWristPitch => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
-            crate::humanoid::Joint::LeftWristYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
-            crate::humanoid::Joint::RightWristPitch => {
-                Err(zeroth::Error::ServoNotFound.into())
-            },
-            crate::humanoid::Joint::RightWristYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
-            crate::humanoid::Joint::NeckPitch => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
-            crate::humanoid::Joint::NeckYaw => {
-                Err(zeroth::Error::ServoNotFound.into())
-            }
+            crate::humanoid::Joint::LeftWristPitch => Err(zeroth::Error::ServoNotFound.into()),
+            crate::humanoid::Joint::LeftWristYaw => Err(zeroth::Error::ServoNotFound.into()),
+            crate::humanoid::Joint::RightWristPitch => Err(zeroth::Error::ServoNotFound.into()),
+            crate::humanoid::Joint::RightWristYaw => Err(zeroth::Error::ServoNotFound.into()),
+            crate::humanoid::Joint::NeckPitch => Err(zeroth::Error::ServoNotFound.into()),
+            crate::humanoid::Joint::NeckYaw => Err(zeroth::Error::ServoNotFound.into()),
         }
     }
 }
-
