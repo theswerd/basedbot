@@ -4,9 +4,10 @@ mod proto {
 
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 pub use proto::{AudioChunk, CalibrationStatus, ImuData, VideoStreamUrls, WifiCredentials};
+use serde::{Deserialize, Serialize};
 use tonic::{IntoStreamingRequest, Streaming};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServoInfo {
     pub id: ServoId,
     pub temperature: f32,
@@ -18,26 +19,38 @@ pub struct ServoInfo {
     pub max_position: f32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TorqueSetting {
     pub id: ServoId,
     pub torque: f32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TorqueEnableSetting {
     pub id: ServoId,
     pub enable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JointPosition {
     pub id: ServoId,
     pub position: f32,
     pub speed: f32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    TryFromPrimitive,
+    IntoPrimitive,
+    Serialize,
+    Deserialize,
+)]
 #[repr(i32)]
 pub enum ServoId {
     RightAnklePitch = 1,
