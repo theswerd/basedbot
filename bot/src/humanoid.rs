@@ -96,7 +96,7 @@ impl From<ServoId> for Joint {
             RightKneePitch => Joint::RightKneePitch,
             RightHipRoll => todo!(),
             LeftAnklePitch => Joint::LeftAnklePitch,
-            LeftHipRoll => todo!()
+            LeftHipRoll => todo!(),
         }
     }
 }
@@ -104,10 +104,19 @@ impl From<ServoId> for Joint {
 pub trait Humanoid {
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
+    fn translate(&self, joint: crate::humanoid::Joint, value: f32) -> f32;
+
+    fn detranslate(&self, joint: crate::humanoid::Joint, value: f32 ) -> f32;
+
     fn get_joint(
         &self,
         joint: Joint,
     ) -> impl std::future::Future<Output = eyre::Result<zeroth::JointPosition>> + Send;
+
+    fn set_joints(
+        &mut self,
+        joints: std::collections::BTreeMap<Joint, f32>,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
     fn set_joint(
         &mut self,
