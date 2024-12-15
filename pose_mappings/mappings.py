@@ -92,9 +92,10 @@ BOT_POSE_LANDMARKS = MappingProxyType({
 
 _parts_to_plot = BOT_POSE_LANDMARKS.keys()
 PLOT_PATHS = {
-    idx: f"/series/keypoints/{value}" 
+    idx: f"/series/keypoints/{value}"
     for idx, value in BOT_POSE_LANDMARKS.items() if idx in _parts_to_plot
 }
+
 
 def log_pose_to_rerun(pose):
     for idx, landmark in enumerate(pose):
@@ -206,7 +207,8 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
 def low_pass_filter(data, alpha=0.5):
     filtered_data = [data[0]]
     filtered_data.extend(
-        {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
+        {key: alpha * data[i][key] + (1 - alpha) *
+         filtered_data[i - 1][key] for key in data[i]}
         for i in range(1, len(data))
     )
     return filtered_data
@@ -222,12 +224,12 @@ def print_landmark_positions(result):
 
 
 def clip_pose_data(pose_data):
-    clip_value = [0, 90]
+    clip_value = [10, 80]
     for key, value in pose_data.items():
         if value < clip_value[0]:
-            pose_data[key] = clip_value[0]
+            pose_data[key] = 0
         elif value > clip_value[1]:
-            pose_data[key] = clip_value[1]
+            pose_data[key] = 90
     return pose_data
 
 
@@ -273,6 +275,15 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     return annotated_image
+
+
+def bound_filter_points(pose):
+    pass
+    # for landmark in pose:
+    # offset hip origin to edge of body
+    # landmark.x = landmark.x - 0.2
+    # landmark.x = max(landmark.x, 0)
+    # landmark.y = max(landmark.y, 0)
 
 
 def main(stream: str = True):
@@ -337,6 +348,7 @@ def main(stream: str = True):
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
+                    bound_filter_points(pose)
                     image_pose = detection_result.pose_landmarks[0]
                     modify_z_coordinates(image_pose, depth_map)
                     log_pose_to_rerun(pose)
@@ -346,7 +358,9 @@ def main(stream: str = True):
                     log_landmark_data_to_rerun(landmark_data)
                     if stream:
                         requests.post(STREAM_ENDPOINT,
-                                      json=landmark_data,
+                                      json={
+                                          'joints': landmark_data,
+                                      },
                                       headers={
                                           'Content-Type': 'application/json'},
                                       timeout=0.1)
@@ -370,6 +384,7 @@ def main(stream: str = True):
             json.dump(pose_data, f, indent=4)
         camera.release()
         cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     import argparse
