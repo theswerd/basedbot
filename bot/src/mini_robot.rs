@@ -65,6 +65,12 @@ pub struct MiniRobotCalibration {
     pub right_hip_roll_min: f32,
     pub right_hip_roll_max: f32,
 
+    // knee
+    pub left_knee_pitch_min: f32,
+    pub left_knee_pitch_max: f32,
+    pub right_knee_pitch_min: f32,
+    pub right_knee_pitch_max: f32,
+
     // ankle
     pub left_ankle_pitch_min: f32,
     pub left_ankle_pitch_max: f32,
@@ -170,6 +176,10 @@ impl Drop for MiniRobot {
     }
 }
 
+fn no_such_servo() -> eyre::Report {
+    eyre::eyre!("No such servo")
+}
+
 impl Humanoid for MiniRobot {
     async fn calibrate(&mut self) -> eyre::Result<()> {
         // let left_shoulder_yaw_info = self.client.get_servo_info(id: ServoId::LeftShoulderYaw).await.unwrap().unwrap();
@@ -181,21 +191,22 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftShoulderYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
+
         let right_shoulder_yaw_info = self
             .client
             .lock()
             .await
             .get_servo_info(ServoId::RightShoulderYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
         let right_elbow_yaw_info = self
             .client
             .lock()
             .await
             .get_servo_info(ServoId::RightElbowYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let left_elbow_yaw_info = self
             .client
@@ -203,7 +214,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftElbowYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let left_shoulder_pitch_info = self
             .client
@@ -211,7 +222,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftShoulderPitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let right_shoulder_pitch_info = self
             .client
@@ -219,7 +230,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::RightShoulderPitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         //hip info functions
         let left_hip_pitch_info = self
@@ -228,7 +239,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftHipPitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let left_hip_yaw_info = self
             .client
@@ -236,7 +247,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftHipYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let left_hip_roll_info = self
             .client
@@ -244,7 +255,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftHipRoll)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let right_hip_pitch_info = self
             .client
@@ -252,7 +263,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftHipPitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let right_hip_yaw_info = self
             .client
@@ -260,7 +271,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::RightHipYaw)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let right_hip_roll_info = self
             .client
@@ -268,7 +279,24 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::RightHipRoll)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
+
+        // knee info
+        let left_knee_pitch_info = self
+            .client
+            .lock()
+            .await
+            .get_servo_info(ServoId::LeftKneePitch)
+            .await?
+            .ok_or_else(no_such_servo)?;
+
+        let right_knee_pitch_info = self
+            .client
+            .lock()
+            .await
+            .get_servo_info(ServoId::RightKneePitch)
+            .await?
+            .ok_or_else(no_such_servo)?;
 
         // ANKLE INFO
         let left_ankle_pitch_info = self
@@ -277,7 +305,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::LeftAnklePitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let right_ankle_pitch_info = self
             .client
@@ -285,7 +313,7 @@ impl Humanoid for MiniRobot {
             .await
             .get_servo_info(ServoId::RightAnklePitch)
             .await?
-            .unwrap();
+            .ok_or_else(no_such_servo)?;
 
         let calibration_builder = MiniRobotCalibration::builder()
             .left_shoulder_yaw_max(left_shoulder_yaw_info.max_position)
@@ -315,7 +343,11 @@ impl Humanoid for MiniRobot {
             .left_ankle_pitch_min(left_ankle_pitch_info.min_position)
             .left_ankle_pitch_max(left_ankle_pitch_info.max_position)
             .right_ankle_pitch_min(right_ankle_pitch_info.min_position)
-            .right_ankle_pitch_max(right_ankle_pitch_info.max_position);
+            .right_ankle_pitch_max(right_ankle_pitch_info.max_position)
+            .left_knee_pitch_min(left_knee_pitch_info.min_position)
+            .left_knee_pitch_max(left_knee_pitch_info.max_position)
+            .right_knee_pitch_min(right_knee_pitch_info.min_position)
+            .right_knee_pitch_max(right_knee_pitch_info.max_position);
 
         self.calibration = calibration_builder.build();
 
