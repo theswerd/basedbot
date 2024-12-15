@@ -133,7 +133,8 @@ def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         numerator / denominator))
-    print(f"RIGHT YAW numeratorX: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
+    print(
+        f"RIGHT YAW numeratorX: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
     # scale magnitude based on the numerator
     # mag=0 if numerator=0.1, mag=1 if numerator=0.5
     min_numerator = 0.05
@@ -143,15 +144,18 @@ def right_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     angle = angle * magnitude
     return angle
 
+
 def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     numerator = abs(pose[12].z - pose[14].z)
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         numerator / denominator))
-    print(f"RIGHT PITCH numeratorZ: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
+    print(
+        f"RIGHT PITCH numeratorZ: {numerator}, denominatorY: {denominator}, angle: {angle:.2f}")
     # vector_magnitude = (math.sqrt(numerator**2 + denominator**2) / 0.05)
     # angle = angle * min(vector_magnitude, 1)
     return angle
+
 
 def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     numerator = abs(pose[11].x - pose[13].x)
@@ -163,7 +167,8 @@ def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     magnitude = (numerator - min_numerator) / (max_numerator - min_numerator)
     magnitude = min(magnitude, 1)
     angle = angle * magnitude
-    return angle    
+    return angle
+
 
 def left_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     numerator = abs(pose[11].z - pose[13].z)
@@ -203,6 +208,7 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
     }
 
     return landmark_output
+
 
 def low_pass_filter(data, alpha=0.5):
     filtered_data = [data[0]]
@@ -286,7 +292,7 @@ def bound_filter_points(pose):
     # landmark.y = max(landmark.y, 0)
 
 
-def main(stream: str = True):
+def main(stream: str = True, disable_viz: bool = False):
     print("Starting main")
     rr.init("rerun_example_my_data", spawn=True)
     rr.log("/", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN, static=True)
@@ -319,6 +325,7 @@ def main(stream: str = True):
     camera = cv2.VideoCapture(_camera)
     pose_data = []
     depth_model = DepthModel()
+    frame_counter = 0
     try:
         with PoseLandmarker.create_from_options(options) as landmarker:
             while True:
@@ -333,8 +340,11 @@ def main(stream: str = True):
                 if not ret:
                     print("Failed to get frame after all retries")
                     break
+                frame_counter += 1
+                # if frame_counter % 3 != 0:
+                #     continue
 
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 mp_image = mp.Image(
                     image_format=mp.ImageFormat.SRGB, data=rgb_frame)
 
@@ -342,9 +352,6 @@ def main(stream: str = True):
                 detection_result = landmarker.detect(mp_image)
                 pil_image = Image.fromarray(frame)
                 depth_map = depth_model.pred_depth(pil_image)
-
-                # Draw landmarks if available
-                frame = draw_landmarks_with_labels(frame, detection_result)
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
@@ -367,8 +374,10 @@ def main(stream: str = True):
                     else:
                         pose_data.append(landmark_data)
 
-                depth_map_rendered = (depth_map * 25).astype(np.uint8)
-                log_image_data_to_rerun(frame, depth_map_rendered)
+                if not disable_viz:
+                    frame = draw_landmarks_with_labels(frame, detection_result)
+                    depth_map_rendered = (depth_map * 25).astype(np.uint8)
+                    log_image_data_to_rerun(frame, depth_map_rendered)
 
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -390,5 +399,6 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--stream', action='store_true')
+    parser.add_argument('--disableViz', action='store_true')
     args = parser.parse_args()
-    main(args.stream)
+    main(args.stream, args.disableViz)
