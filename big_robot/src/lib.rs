@@ -105,15 +105,18 @@ impl From<tonic::Status> for Error {
 }
 
 pub struct Client {
-    inner: kos_proto::actuator::actuator_service_client::ActuatorServiceClient<tonic::transport::Channel>,
+    inner: kos_proto::actuator::actuator_service_client::ActuatorServiceClient<
+        tonic::transport::Channel,
+    >,
 }
 
 impl Client {
     pub async fn connect(addr: impl AsRef<str>) -> Result<Self, Error> {
-        let conn =
-            kos_proto::actuator::actuator_service_client::ActuatorServiceClient::connect(addr.as_ref().to_string())
-                .await
-                .map_err(|source| Error::Connection { source })?;
+        let conn = kos_proto::actuator::actuator_service_client::ActuatorServiceClient::connect(
+            addr.as_ref().to_string(),
+        )
+        .await
+        .map_err(|source| Error::Connection { source })?;
 
         Ok(Self { inner: conn })
     }
@@ -130,7 +133,7 @@ impl Client {
             })
             .collect())
     }
-// }
+    // }
     pub async fn set_positions(&mut self, positions: Vec<JointPosition>) -> Result<(), Error> {
         self.inner
             .set_positions(kos_proto::JointPositions {
@@ -255,12 +258,18 @@ impl Client {
     }
 
     pub async fn get_video_stream_urls(&mut self) -> Result<VideoStreamUrls, Error> {
-        let res = self.inner.get_video_stream_urls(kos_proto::Empty {}).await?;
+        let res = self
+            .inner
+            .get_video_stream_urls(kos_proto::Empty {})
+            .await?;
         Ok(res.into_inner())
     }
 
     pub async fn get_calibration_status(&mut self) -> Result<CalibrationStatus, Error> {
-        let res = self.inner.get_calibration_status(kos_proto::Empty {}).await?;
+        let res = self
+            .inner
+            .get_calibration_status(kos_proto::Empty {})
+            .await?;
         Ok(res.into_inner())
     }
 
@@ -370,3 +379,4 @@ impl Client {
         Ok(res.into_inner())
     }
 }
+
