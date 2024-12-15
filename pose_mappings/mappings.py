@@ -146,14 +146,14 @@ def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
 def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        abs(pose[12].z - pose[16].z) / denominator))
+        abs(pose[12].z - pose[14].z) / denominator))
     return angle
 
 
 def left_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[11].y - pose[13].y), 1e-6)
     return math.degrees(math.atan(
-        (pose[11].z - pose[15].z) / denominator))
+        (pose[11].z - pose[13].z) / denominator))
 
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
