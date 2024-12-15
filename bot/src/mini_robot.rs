@@ -97,9 +97,9 @@ impl MiniRobot {
         return false;
     }
 
-    pub async fn step(&mut self) -> eyre::Result<()> {
+    pub async fn step(&mut self) -> eyre::Result<bool> {
         let Some(current) = &self.current.clone() else {
-            return Ok(());
+            return Ok(false);
         };
 
         let mut done = true;
@@ -118,7 +118,7 @@ impl MiniRobot {
             }
         }
 
-        Ok(())
+        Ok(true)
     }
 }
 
