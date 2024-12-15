@@ -45,20 +45,20 @@ async fn main() -> eyre::Result<()> {
 
     let queue = robot.queue.clone();
 
-    stream_frame_from_server(&mut robot, queue).await?;
+    stream_frame_from_server(&mut robot).await?;
 
     Ok(())
 }
 
 pub async fn stream_frame_from_server<H: Humanoid>(
-    robot: &mut Runtime<H>,
-    frame_queue: Arc<crossbeam::queue::SegQueue<Frame>>,
+    robot:Runtime<H>,
+    // frame_queue: Arc<crossbeam::queue::SegQueue<Frame>>,
 ) -> eyre::Result<()> {
     let tcp_listener = tokio::net::TcpListener::bind("0.0.0.0:8020").await?;
     let app = Router::new()
         .route("/status", get(|| async { "OK" }))
         .route("/frame", post(frame_handler))
-        .with_state(frame_queue.clone());
+        .with_state(robot);
 
     // run our app with hyper, listening globally on port 3000
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -73,15 +73,15 @@ pub async fn stream_frame_from_server<H: Humanoid>(
     //     }
     // }).await.unwrap();
 
-    tokio::spawn(async {
+    let handle = tokio::spawn(async {
         println!("Listening on http://{}", tcp_listener.local_addr().unwrap());
 
         axum::serve(tcp_listener, app.into_make_service())
             .await
             .unwrap();
-    })
-    .await
-    .unwrap();
+    });
+
+    println!("Run loop started");
 
     loop {
         println!("LOOPing {}", robot.queue.len());
@@ -206,15 +206,15 @@ pub async fn initial_position(robot: &mut impl Humanoid) -> eyre::Result<()> {
 
 // 0 -90 90
 
-async fn frame_handler(
-    State(frame_queue): State<Arc<crossbeam::queue::SegQueue<Frame>>>,
+async fn frame_handler<H: Humanoid>(
+    State(mut frame_queue): State<Runtime<H>>,
     Json(payload): Json<FrameData>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     println!("Received frame: {:?}", payload.joints);
     let frame = frame_json_to_frame(payload.joints).unwrap();
 
     println!("Received frame: {:?}", frame);
-    frame_queue.push(frame);
+    frame_queue.overwrite(frame);
 
     (StatusCode::CREATED, Json(serde_json::json!({})))
 }
