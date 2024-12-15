@@ -53,23 +53,22 @@ def right_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[12].x - pose[14].x) / abs(pose[12].y - pose[14].y)))
 
-
 def left_shoulder_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     return math.degrees(math.atan(
         abs(pose[11].x - pose[13].x) / abs(pose[11].y - pose[13].y)))
 
-
 def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
-    a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
-    b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
-    return math.degrees(math.acos(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))))
+    return math.degrees(math.atan(
+        abs(pose[12].z - pose[14].z) / abs(pose[12].y - pose[14].y)))
 
+def left_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
+    return math.degrees(math.atan(
+        abs(pose[11].z - pose[13].z) / abs(pose[11].y - pose[13].y)))
 
 def right_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
     b = np.array([abs(pose[16].x - pose[14].x), abs(pose[16].y - pose[14].y)])
     return math.degrees(math.acos(float(np.dot(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))))
-
 
 def left_elbow_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     a = np.array([abs(pose[12].x - pose[14].x), abs(pose[12].y - pose[14].y)])
@@ -83,6 +82,8 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
         '12': left_shoulder_angle(pose),
         '11': right_elbow_angle(pose),
         '16': left_elbow_angle(pose),
+        '13': right_shoulder_forward_angle(pose),
+        '14': left_shoulder_forward_angle(pose),
     }
 
     return landmark_output
