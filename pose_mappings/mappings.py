@@ -92,9 +92,10 @@ BOT_POSE_LANDMARKS = MappingProxyType({
 
 _parts_to_plot = BOT_POSE_LANDMARKS.keys()
 PLOT_PATHS = {
-    idx: f"/series/keypoints/{value}" 
+    idx: f"/series/keypoints/{value}"
     for idx, value in BOT_POSE_LANDMARKS.items() if idx in _parts_to_plot
 }
+
 
 def log_pose_to_rerun(pose):
     for idx, landmark in enumerate(pose):
@@ -146,7 +147,14 @@ def left_yaw_angle(pose: list[landmark_pb2.NormalizedLandmark]):
 def right_pitch_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
-        abs(pose[12].z - pose[14].z) / denominator))
+        (pose[12].z - pose[14].z) / denominator))
+    # print(f"x12: {pose[12].x:.0f}, x14: {pose[14].x:.0f}")
+    # print(f"y12: {pose[12].y:.0f}, y14: {pose[14].y:.0f}")
+    # print(f"z12: {pose[12].z:.0f}, z14: {pose[14].z:.0f}")
+    print(f"x16: {pose[16].x:.2f}, x15: {pose[15].x:.2f}")
+    print(f"y16: {pose[16].y:.2f}, y15: {pose[15].y:.2f}")
+    print(f"z16: {pose[16].z:.2f}, z15: {pose[15].z:.2f}")
+    print(f"right shoulder forward angle: {angle:.2f}")
     return angle
 
 
@@ -187,10 +195,12 @@ def compute_angles(pose: list[landmark_pb2.NormalizedLandmark]):
 
     return landmark_output
 
+
 def low_pass_filter(data, alpha=0.1):
     filtered_data = [data[0]]
     filtered_data.extend(
-        {key: alpha * data[i][key] + (1 - alpha) * filtered_data[i - 1][key] for key in data[i]}
+        {key: alpha * data[i][key] + (1 - alpha) *
+         filtered_data[i - 1][key] for key in data[i]}
         for i in range(1, len(data))
     )
     return filtered_data
@@ -206,12 +216,12 @@ def print_landmark_positions(result):
 
 
 def clip_pose_data(pose_data):
-    clip_value = [0, 90]
+    clip_value = [10, 80]
     for key, value in pose_data.items():
         if value < clip_value[0]:
-            pose_data[key] = clip_value[0]
+            pose_data[key] = 0
         elif value > clip_value[1]:
-            pose_data[key] = clip_value[1]
+            pose_data[key] = 90
     return pose_data
 
 
@@ -257,6 +267,15 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     return annotated_image
+
+
+def bound_filter_points(pose):
+    pass
+    # for landmark in pose:
+    # offset hip origin to edge of body
+    # landmark.x = landmark.x - 0.2
+    # landmark.x = max(landmark.x, 0)
+    # landmark.y = max(landmark.y, 0)
 
 
 def main(stream: str = True):
@@ -321,6 +340,7 @@ def main(stream: str = True):
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
+                    bound_filter_points(pose)
                     image_pose = detection_result.pose_landmarks[0]
                     modify_z_coordinates(image_pose, depth_map)
                     log_pose_to_rerun(pose)
@@ -330,7 +350,9 @@ def main(stream: str = True):
                     landmark_data = low_pass_filter([landmark_data])[0]
                     if stream:
                         requests.post(STREAM_ENDPOINT,
-                                      json=landmark_data,
+                                      json={
+                                          'joints': landmark_data,
+                                      },
                                       headers={
                                           'Content-Type': 'application/json'},
                                       timeout=0.1)
@@ -354,6 +376,7 @@ def main(stream: str = True):
             json.dump(pose_data, f, indent=4)
         camera.release()
         cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     import argparse
