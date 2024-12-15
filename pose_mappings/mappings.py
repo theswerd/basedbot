@@ -160,9 +160,12 @@ def right_shoulder_forward_angle(pose: list[landmark_pb2.NormalizedLandmark]):
     denominator = max(abs(pose[12].y - pose[14].y), 1e-6)
     angle = math.degrees(math.atan(
         (pose[12].z - pose[14].z) / denominator))
-    # print(f"x12: {pose[12].x}, x14: {pose[14].x}")
-    # print(f"y12: {pose[12].y}, y14: {pose[14].y}")
-    # print(f"z12: {pose[12].z}, z14: {pose[14].z}")
+    # print(f"x12: {pose[12].x:.0f}, x14: {pose[14].x:.0f}")
+    # print(f"y12: {pose[12].y:.0f}, y14: {pose[14].y:.0f}")
+    # print(f"z12: {pose[12].z:.0f}, z14: {pose[14].z:.0f}")
+    print(f"x16: {pose[16].x:.2f}, x15: {pose[15].x:.2f}")
+    print(f"y16: {pose[16].y:.2f}, y15: {pose[15].y:.2f}")
+    print(f"z16: {pose[16].z:.2f}, z15: {pose[15].z:.2f}")
     print(f"right shoulder forward angle: {angle:.2f}")
     return angle
 
@@ -215,12 +218,12 @@ def print_landmark_positions(result):
 
 
 def clip_pose_data(pose_data):
-    clip_value = [0, 90]
+    clip_value = [10, 80]
     for key, value in pose_data.items():
         if value < clip_value[0]:
-            pose_data[key] = clip_value[0]
+            pose_data[key] = 0
         elif value > clip_value[1]:
-            pose_data[key] = clip_value[1]
+            pose_data[key] = 90
     return pose_data
 
 
@@ -266,6 +269,15 @@ def draw_landmarks_with_labels(rgb_image, detection_result):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     return annotated_image
+
+
+def bound_filter_points(pose):
+    pass
+    # for landmark in pose:
+    # offset hip origin to edge of body
+    # landmark.x = landmark.x - 0.2
+    # landmark.x = max(landmark.x, 0)
+    # landmark.y = max(landmark.y, 0)
 
 
 def main(stream: str = True):
@@ -330,6 +342,7 @@ def main(stream: str = True):
 
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
+                    bound_filter_points(pose)
                     image_pose = detection_result.pose_landmarks[0]
                     modify_z_coordinates(image_pose, depth_map)
                     log_pose_to_rerun(pose)
@@ -338,7 +351,9 @@ def main(stream: str = True):
                     landmark_data = clip_pose_data(landmark_data)
                     if stream:
                         requests.post(STREAM_ENDPOINT,
-                                      json=landmark_data,
+                                      json={
+                                          'joints': landmark_data,
+                                      },
                                       headers={
                                           'Content-Type': 'application/json'},
                                       timeout=0.1)
