@@ -18,48 +18,27 @@ pub struct KBot {
 #[derive(Builder, Clone, Default)]
 pub struct KBotCalibration {
     // shoulder
-    pub left_shoulder_yaw_min: f32,
-    pub left_shoulder_yaw_max: f32,
-    pub left_elbow_yaw_min: f32,
-    pub left_elbow_yaw_max: f32,
-    pub right_elbow_yaw_min: f32,
-    pub right_elbow_yaw_max: f32,
-    pub left_shoulder_pitch_min: f32,
-    pub left_shoulder_pitch_max: f32,
-    pub right_shoulder_pitch_min: f32,
-    pub right_shoulder_pitch_max: f32,
-    pub right_shoulder_yaw_min: f32,
-    pub right_shoulder_yaw_max: f32,
+    pub right_arm_shoulder_pitch_min: f32,
+    pub right_arm_shoulder_pitch_max: f32,
+    pub right_arm_shoulder_roll_min: f32,
+    pub right_arm_shoulder_roll_max: f32,
+    pub right_arm_shoulder_yaw_min: f32,
+    pub right_arm_shoulder_yaw_max: f32,
+    pub right_arm_elbow_pitch_min: f32,
+    pub right_arm_elbow_pitch_max: f32,
+    pub right_arm_elbow_roll_min: f32,
+    pub right_arm_elbow_roll_max: f32,
 
-    // hip
-    pub left_hip_pitch_min: f32,
-    pub left_hip_pitch_max: f32,
-    pub left_hip_yaw_min: f32,
-    pub left_hip_yaw_max: f32,
-    // pub left_hip_roll_min: f32,
-    // pub left_hip_roll_max: f32,
-    pub right_hip_pitch_min: f32,
-    pub right_hip_pitch_max: f32,
-    pub right_hip_yaw_min: f32,
-    pub right_hip_yaw_max: f32,
-    // pub right_hip_roll_min: f32,
-    // pub right_hip_roll_max: f32,
-
-    // knee
-    pub left_knee_pitch_min: f32,
-    pub left_knee_pitch_max: f32,
-    pub right_knee_pitch_min: f32,
-    pub right_knee_pitch_max: f32,
-    pub left_knee_yaw_min: f32,
-    pub left_knee_yaw_max: f32,
-    pub right_knee_yaw_min: f32,
-    pub right_knee_yaw_max: f32,
-
-    // ankle
-    pub left_ankle_pitch_min: f32,
-    pub left_ankle_pitch_max: f32,
-    pub right_ankle_pitch_min: f32,
-    pub right_ankle_pitch_max: f32,
+    pub left_arm_shoulder_pitch_min: f32,
+    pub left_arm_shoulder_pitch_max: f32,
+    pub left_arm_shoulder_roll_min: f32,
+    pub left_arm_shoulder_roll_max: f32,
+    pub left_arm_shoulder_yaw_min: f32,
+    pub left_arm_shoulder_yaw_max: f32,
+    pub left_arm_elbow_pitch_min: f32,
+    pub left_arm_elbow_pitch_max: f32,
+    pub left_arm_elbow_roll_min: f32,
+    pub left_arm_elbow_roll_max: f32,
 }
 
 impl KBot {
