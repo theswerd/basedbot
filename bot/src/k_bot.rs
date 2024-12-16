@@ -64,7 +64,57 @@ impl Humanoid for KBot {
     }
 
     fn translate(&self, joint: Joint, value: f32) -> f32 {
-        value
+        let map = |min: f32, max: f32, val: f32| {
+            if (max - min).abs() < f32::EPSILON {
+                0.0
+            } else {
+                min + (max - min) * (val / 90.0)
+            }
+        };
+
+        match joint {
+            Joint::LeftShoulderPitch => map(
+                self.calibration.left_arm_shoulder_pitch_min,
+                self.calibration.left_arm_shoulder_pitch_max,
+                value,
+            ),
+            Joint::LeftShoulderYaw => map(
+                self.calibration.left_arm_shoulder_yaw_min,
+                self.calibration.left_arm_shoulder_yaw_max,
+                value,
+            ),
+            Joint::LeftElbowPitch => map(
+                self.calibration.left_arm_elbow_pitch_min,
+                self.calibration.left_arm_elbow_pitch_max,
+                value,
+            ),
+            Joint::LeftElbowYaw => map(
+                self.calibration.left_arm_elbow_roll_min,
+                self.calibration.left_arm_elbow_roll_max,
+                value,
+            ),
+            Joint::RightShoulderPitch => map(
+                self.calibration.right_arm_shoulder_pitch_min,
+                self.calibration.right_arm_shoulder_pitch_max,
+                value,
+            ),
+            Joint::RightShoulderYaw => map(
+                self.calibration.right_arm_shoulder_yaw_min,
+                self.calibration.right_arm_shoulder_yaw_max,
+                value,
+            ),
+            Joint::RightElbowPitch => map(
+                self.calibration.right_arm_elbow_pitch_min,
+                self.calibration.right_arm_elbow_pitch_max,
+                value,
+            ),
+            Joint::RightElbowYaw => map(
+                self.calibration.right_arm_elbow_roll_min,
+                self.calibration.right_arm_elbow_roll_max,
+                value,
+            ),
+            _ => 0.0,
+        }
     }
 
     async fn stabilize(&mut self) -> eyre::Result<()> {
@@ -101,7 +151,10 @@ impl Humanoid for KBot {
             .into_iter()
             .map(|(joint, value)| {
                 let servo_id: i32 = joint.into();
-                eyre::Ok((servo_id.try_into()?, value))
+                eyre::Ok((
+                    servo_id.try_into()?,
+                    self.translate(joint.clone(), value.clone()),
+                ))
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
 
