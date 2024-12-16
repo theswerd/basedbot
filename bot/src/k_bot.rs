@@ -93,22 +93,25 @@ impl Humanoid for KBot {
     }
 
     async fn get_joint(&self, joint: Joint) -> eyre::Result<JointPosition> {
-        let mut client = self.client.lock().await;
+        let servo_id: i32 = joint.into();
 
-        //    let res = client.get_actuator_state(
-        //     joint.into()
-        //    ).await?;
+        let state = self
+            .client
+            .lock()
+            .await
+            .get_actuator_state(ActuatorId::try_from(servo_id)?)
+            .await?;
 
-        // Ok(JointPosition {
-        //     joint,
-        //     position: 0.0,
-        //     speed: 0.0,
-        // })
-        todo!()
+        Ok(JointPosition {
+            joint,
+            position: state.position,
+            speed: state.speed,
+        })
     }
 
     async fn set_joint(&mut self, joint: Joint, position: f32) -> eyre::Result<()> {
-        todo!()
+        self.set_joints(std::iter::once((joint, position)).collect())
+            .await
     }
 
     async fn set_joints(

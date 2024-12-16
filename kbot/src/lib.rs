@@ -163,7 +163,7 @@ impl Client {
     pub async fn get_actuator_state(
         &mut self,
         servo_id: ActuatorId,
-    ) -> Result<Vec<JointPosition>, Error> {
+    ) -> Result<JointPosition, Error> {
         let res = self
             .inner
             .lock()
@@ -173,7 +173,7 @@ impl Client {
             })
             .await?;
 
-        let out: Vec<JointPosition> = res
+        let mut out: Vec<JointPosition> = res
             .into_inner()
             .states
             .iter()
@@ -199,6 +199,6 @@ impl Client {
             return Err(Error::ServoNotFound);
         }
 
-        Ok(out)
+        Ok(out.remove(0))
     }
 }
