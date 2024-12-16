@@ -107,6 +107,10 @@ impl Humanoid for KBot {
         todo!()
     }
 
+    async fn set_joint(&mut self, joint: Joint, position: f32) -> eyre::Result<()> {
+        todo!()
+    }
+
     async fn set_joints(
         &mut self,
         joints: std::collections::BTreeMap<Joint, f32>,

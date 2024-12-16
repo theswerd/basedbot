@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use bon::Builder;
 use eyre::Ok;
-use serde::ser;
 use tokio::sync::Mutex;
 use zeroth::ServoId;
 
@@ -690,12 +689,12 @@ impl Humanoid for MiniRobot {
     }
 
     async fn set_joint(&mut self, joint: Joint, position: f32) -> eyre::Result<()> {
-        let servo_id: crate::humanoid::ServoId = joint.try_into()?;
+        let servo_id: i32 = joint.into();
         self.client
             .lock()
             .await
             .set_position(zeroth::JointPosition {
-                id: servo_id.0,
+                id: zeroth::ServoId::try_from(servo_id)?,
                 position: self.translate(joint, position),
                 speed: 100.0,
             })
