@@ -114,9 +114,9 @@ impl Humanoid for KBot {
                 value,
             ),
             _ => 0.0,
-        }
-    
-        out.clamp(0., 170.)
+        };
+
+        out.clamp(-170., 170.)
     }
 
     async fn stabilize(&mut self) -> eyre::Result<()> {

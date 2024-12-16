@@ -2,6 +2,15 @@
 name = "bot"
 version = "0.1.0"
 edition = "2021"
+default-run = "main"
+
+[[bin]]
+path = "src/main.rs"
+name = "main"
+
+[[bin]]
+path = "src/big.rs"
+name = "big"
 
 [dependencies]
 zeroth = { path = "../zeroth" }
