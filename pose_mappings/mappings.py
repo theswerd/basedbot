@@ -352,7 +352,7 @@ def main(stream: str = True, disable_viz: bool = False):
                 detection_result = landmarker.detect(mp_image)
                 pil_image = Image.fromarray(frame)
                 depth_map = depth_model.pred_depth(pil_image)
-
+                print(f"depth_map: {depth_map.shape}")
                 if detection_result.pose_world_landmarks:
                     pose = detection_result.pose_world_landmarks[0]
                     bound_filter_points(pose)
