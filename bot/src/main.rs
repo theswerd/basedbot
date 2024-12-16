@@ -184,18 +184,16 @@ pub async fn initial_position<H: Humanoid>(robot: &Runtime<H>) -> eyre::Result<(
 
     initial_joints_btree.insert(Joint::RightShoulderYaw, 0.0);
     initial_joints_btree.insert(Joint::LeftShoulderYaw, 0.0);
-    initial_joints_btree.insert(Joint::LeftAnklePitch, 0.0);
-    initial_joints_btree.insert(Joint::RightAnklePitch, 0.0); // TODO: REFVESRSE
-    initial_joints_btree.insert(Joint::LeftHipPitch, 90.0); // TODO: REVERSE
-    initial_joints_btree.insert(Joint::RightHipPitch, 0.0);
+    initial_joints_btree.insert(Joint::LeftAnklePitch, -20.0);
+    initial_joints_btree.insert(Joint::RightAnklePitch, 20.0); // TODO: REFVESRSE
     initial_joints_btree.insert(Joint::LeftHipYaw, 90.0); // TODO: REVERSE
     initial_joints_btree.insert(Joint::RightHipYaw, 0.0);
     initial_joints_btree.insert(Joint::LeftKneeYaw, 45.0); // is center, move to 0
-    initial_joints_btree.insert(Joint::LeftKneePitch, 45.0);
+    initial_joints_btree.insert(Joint::LeftKneePitch, 10.0);
     initial_joints_btree.insert(Joint::RightKneeYaw, 45.0);
-    initial_joints_btree.insert(Joint::RightKneePitch, 45.0);
-    initial_joints_btree.insert(Joint::LeftHipPitch, 45.0); // recenter on 0
-    initial_joints_btree.insert(Joint::RightHipPitch, 45.0); // Reverse, recenter on 0
+    initial_joints_btree.insert(Joint::RightKneePitch, 80.0);
+    initial_joints_btree.insert(Joint::LeftHipPitch, 65.0); // recenter on 0
+    initial_joints_btree.insert(Joint::RightHipPitch, 25.0); // Reverse, recenter on 0
 
     // initial_joints_btree.insert(Joint::RightKneePitch, -90.0);
 
