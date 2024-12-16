@@ -72,7 +72,7 @@ impl Humanoid for KBot {
             }
         };
 
-        match joint {
+        let out = match joint {
             Joint::LeftShoulderPitch => map(
                 self.calibration.left_arm_shoulder_pitch_min,
                 self.calibration.left_arm_shoulder_pitch_max,
@@ -115,6 +115,8 @@ impl Humanoid for KBot {
             ),
             _ => 0.0,
         }
+    
+        out.clamp(0., 170.)
     }
 
     async fn stabilize(&mut self) -> eyre::Result<()> {
