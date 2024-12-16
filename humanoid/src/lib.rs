@@ -4,9 +4,22 @@ mod runtime;
 
 pub use runtime::*;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    num_enum::TryFromPrimitive,
+    num_enum::IntoPrimitive,
+)]
+#[repr(i32)]
 pub enum Joint {
-    LeftHipPitch,
+    LeftHipPitch = 1,
     LeftHipYaw,
     LeftHipRoll,
 
@@ -55,7 +68,9 @@ pub struct JointPosition {
     pub speed: f32,
 }
 
-pub trait Humanoid: Clone + Sync + Send + 'static{
+pub trait Humanoid: Clone + Sync + Send + 'static {
+    type JointId: TryFrom<i32> + Into<i32>;
+
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
     fn translate(&self, joint: Joint, value: f32) -> f32;
@@ -70,5 +85,11 @@ pub trait Humanoid: Clone + Sync + Send + 'static{
     fn set_joints(
         &mut self,
         joints: std::collections::BTreeMap<Joint, f32>,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_joint(
+        &mut self,
+        joint: Joint,
+        position: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 }

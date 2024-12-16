@@ -10,7 +10,7 @@ use humanoid::Joint;
 use humanoid::JointPosition;
 use zeroth::TorqueEnableSetting;
 
-#[derive( Clone)]
+#[derive(Clone)]
 pub struct MiniRobot {
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
@@ -89,6 +89,8 @@ fn no_such_servo() -> eyre::Report {
 }
 
 impl Humanoid for MiniRobot {
+    type JointId = ServoId;
+
     async fn stabilize(&mut self) -> eyre::Result<()> {
         println!("Stabilization not implemented");
         Ok(())
@@ -268,16 +270,20 @@ impl Humanoid for MiniRobot {
 
         self.calibration = calibration_builder.build();
 
-
         // self.client.lock().await.disable_movement().await?;
 
         self.client
-            .lock().await.set_torque_enable(
-                (1..=16).map(|id| TorqueEnableSetting {
-                    id: ServoId::try_from(id).expect("valid servo id"),
-                    enable: true,
-                }).collect()
-            ).await?;
+            .lock()
+            .await
+            .set_torque_enable(
+                (1..=16)
+                    .map(|id| TorqueEnableSetting {
+                        id: ServoId::try_from(id).expect("valid servo id"),
+                        enable: true,
+                    })
+                    .collect(),
+            )
+            .await?;
         self.client
             .lock()
             .await
@@ -286,7 +292,7 @@ impl Humanoid for MiniRobot {
                     .map(|id| zeroth::TorqueSetting {
                         // 1..16 is the range of servo ids
                         id: ServoId::try_from(id).expect("valid servo id"),
-                        torque: 100.,
+                        torque: 50.0,
                     })
                     .collect(),
             )
@@ -638,7 +644,7 @@ impl Humanoid for MiniRobot {
                     .client
                     .lock()
                     .await
-                    .get_servo_info(ServoId::RightElbowYaw)
+                    .get_servo_info(zeroth::ServoId::RightElbowYaw)
                     .await?
                     .unwrap();
                 Ok(JointPosition {
@@ -667,9 +673,9 @@ impl Humanoid for MiniRobot {
                 joints
                     .into_iter()
                     .map(|(joint, value)| {
-                        let servo_id: crate::humanoid::ServoId = joint.try_into()?;
+                        let servo_id: i32 = joint.into();
                         Ok(zeroth::JointPosition {
-                            id: servo_id.0,
+                            id: ServoId::try_from(servo_id)?,
                             position: self.translate(joint, value),
                             speed: 30.0,
                         })
@@ -681,4 +687,92 @@ impl Humanoid for MiniRobot {
 
         Ok(())
     }
+
+    async fn set_joint(&mut self, joint: Joint, position: f32) -> eyre::Result<()> {
+        let servo_id: i32 = joint.into();
+        self.client
+            .lock()
+            .await
+            .set_position(zeroth::JointPosition {
+                id: zeroth::ServoId::try_from(servo_id)?,
+                position: self.translate(joint, position),
+                speed: 100.0,
+            })
+            .await
+            .unwrap();
+
+        Ok(())
+    }
 }
+
+pub struct ServoIdConversion(pub zeroth::ServoId);
+
+impl std::fmt::Display for ServoIdConversion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+impl std::fmt::Debug for ServoIdConversion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
+// impl humanoid::JointInterop for ServoIdConversion {
+//     type Error = eyre::Report;
+//
+//     fn from_joint(value: Joint) -> Result<Self, Self::Error> {
+//         Ok(ServoIdConversion(match value {
+//             Joint::LeftKneeYaw => zeroth::ServoId::LeftHipRoll,
+//             Joint::LeftHipPitch => zeroth::ServoId::LeftHipPitch,
+//             Joint::LeftHipYaw => zeroth::ServoId::LeftHipYaw,
+//             Joint::RightHipPitch => zeroth::ServoId::RightHipPitch,
+//             Joint::RightHipYaw => zeroth::ServoId::RightHipYaw,
+//             Joint::RightKneeYaw => zeroth::ServoId::RightHipRoll,
+//             Joint::LeftKneePitch => zeroth::ServoId::LeftKneePitch,
+//             Joint::LeftHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::RightKneePitch => zeroth::ServoId::RightKneePitch,
+//             Joint::RightHipRoll => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::LeftAnklePitch => zeroth::ServoId::LeftAnklePitch,
+//             Joint::LeftAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::RightAnklePitch => zeroth::ServoId::RightAnklePitch,
+//             Joint::RightAnkleYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::LeftShoulderPitch => zeroth::ServoId::LeftShoulderPitch,
+//             Joint::LeftShoulderYaw => zeroth::ServoId::LeftShoulderYaw,
+//             Joint::RightShoulderPitch => zeroth::ServoId::RightShoulderPitch,
+//             Joint::RightShoulderYaw => zeroth::ServoId::RightShoulderYaw,
+//             Joint::LeftElbowPitch => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::LeftElbowYaw => zeroth::ServoId::LeftElbowYaw,
+//             Joint::RightElbowPitch => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//             Joint::RightElbowYaw => zeroth::ServoId::RightElbowYaw,
+//             Joint::LeftWristPitch
+//             | Joint::LeftWristYaw
+//             | Joint::RightWristPitch
+//             | Joint::RightWristYaw
+//             | Joint::NeckPitch
+//             | Joint::NeckYaw => return Err(eyre::eyre!("Unsupported joint: {:?}", value)),
+//         }))
+//     }
+//
+//     fn into_joint(self) -> Result<Joint, Self::Error> {
+//         Ok(match self.0 {
+//             zeroth::ServoId::LeftHipPitch => Joint::LeftHipPitch,
+//             zeroth::ServoId::LeftHipYaw => Joint::LeftHipYaw,
+//             zeroth::ServoId::RightHipPitch => Joint::RightHipPitch,
+//             zeroth::ServoId::RightHipYaw => Joint::RightHipYaw,
+//             zeroth::ServoId::LeftKneePitch => Joint::LeftKneePitch,
+//             zeroth::ServoId::LeftShoulderPitch => Joint::LeftShoulderPitch,
+//             zeroth::ServoId::LeftShoulderYaw => Joint::LeftShoulderYaw,
+//             zeroth::ServoId::RightShoulderPitch => Joint::RightShoulderPitch,
+//             zeroth::ServoId::RightShoulderYaw => Joint::RightShoulderYaw,
+//             zeroth::ServoId::LeftElbowYaw => Joint::LeftElbowYaw,
+//             zeroth::ServoId::RightElbowYaw => Joint::RightElbowYaw,
+//             zeroth::ServoId::RightAnklePitch => Joint::RightAnklePitch,
+//             zeroth::ServoId::RightKneePitch => Joint::RightKneePitch,
+//             zeroth::ServoId::RightHipRoll => Joint::RightKneeYaw,
+//             zeroth::ServoId::LeftAnklePitch => Joint::LeftAnklePitch,
+//             zeroth::ServoId::LeftHipRoll => Joint::LeftKneeYaw,
+//         })
+//     }
+// }

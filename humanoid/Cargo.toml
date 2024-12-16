@@ -6,5 +6,7 @@ edition = "2021"
 [dependencies]
 crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
 eyre = "0.6.12"
+num_enum = "0.7.3"
 serde = { workspace = true, features = ["derive"] }
+strum = { version = "0.26.3", features = ["derive"] }
 tokio = { workspace = true, features = ["time"] }
