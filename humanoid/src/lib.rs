@@ -55,7 +55,7 @@ pub struct JointPosition {
     pub speed: f32,
 }
 
-pub trait Humanoid: Clone + Sync + Send + 'static{
+pub trait Humanoid: Clone + Sync + Send + 'static {
     fn calibrate(&mut self) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 
     fn translate(&self, joint: Joint, value: f32) -> f32;
@@ -70,5 +70,11 @@ pub trait Humanoid: Clone + Sync + Send + 'static{
     fn set_joints(
         &mut self,
         joints: std::collections::BTreeMap<Joint, f32>,
+    ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
+
+    fn set_joint(
+        &mut self,
+        joint: Joint,
+        position: f32,
     ) -> impl std::future::Future<Output = eyre::Result<()>> + Send;
 }

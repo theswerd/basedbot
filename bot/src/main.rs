@@ -199,12 +199,16 @@ pub async fn initial_position<H: Humanoid>(robot: &Runtime<H>) -> eyre::Result<(
 
     // initial_joints_btree.insert(Joint::RightKneePitch, -90.0);
 
-    robot
-        .lock()
-        .await
-        .set_joints(initial_joints_btree)
-        .await
-        .unwrap();
+    // robot
+    //     .lock()
+    //     .await
+    //     .set_joints(initial_joints_btree)
+    //     .await
+    //     .unwrap();
+    let mut lock = robot.lock().await;
+    for (joint, value) in initial_joints_btree {
+        lock.set_joint(joint, value).await?;
+    }
 
     Ok(())
 }

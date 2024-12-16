@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use bon::Builder;
 use eyre::Ok;
+use serde::ser;
 use tokio::sync::Mutex;
 use zeroth::ServoId;
 
@@ -9,7 +10,7 @@ use humanoid::Humanoid;
 use humanoid::Joint;
 use humanoid::JointPosition;
 
-#[derive( Clone)]
+#[derive(Clone)]
 pub struct MiniRobot {
     client: Arc<Mutex<zeroth::Client>>,
     calibration: MiniRobotCalibration,
@@ -275,7 +276,7 @@ impl Humanoid for MiniRobot {
                     .map(|id| zeroth::TorqueSetting {
                         // 1..16 is the range of servo ids
                         id: ServoId::try_from(id).expect("valid servo id"),
-                        torque: 1.,
+                        torque: 50.0,
                     })
                     .collect(),
             )
@@ -665,6 +666,22 @@ impl Humanoid for MiniRobot {
                     })
                     .collect::<Result<Vec<_>, _>>()?,
             )
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    async fn set_joint(&mut self, joint: Joint, position: f32) -> eyre::Result<()> {
+        let servo_id: crate::humanoid::ServoId = joint.try_into()?;
+        self.client
+            .lock()
+            .await
+            .set_position(zeroth::JointPosition {
+                id: servo_id.0,
+                position: self.translate(joint, position),
+                speed: 100.0,
+            })
             .await
             .unwrap();
 
