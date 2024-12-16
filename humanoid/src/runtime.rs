@@ -125,45 +125,48 @@ impl<H: Humanoid> Runtime<H> {
             .await
             .unwrap();
 
-        loop {
-            tokio::time::sleep(Duration::from_millis(100)).await;
+        // loop {
+        //     tokio::time::sleep(Duration::from_millis(100)).await;
 
-            // check if all joints are within a 5 degree of the target
-            let mut done = true;
-            for (joint, value) in &current.joints {
-                let current = self
-                    .inner
-                    .robot
-                    .lock()
-                    .await
-                    .get_joint(joint.clone())
-                    .await?;
-                let joint_position = self
-                    .inner
-                    .robot
-                    .lock()
-                    .await
-                    .translate(joint.clone(), value.clone());
-                let dist = (current.position - joint_position).abs();
+        //     // check if all joints are within a 5 degree of the target
+        //     let mut done = true;
+        //     for (joint, value) in &current.joints {
+        //         let current = self
+        //             .inner
+        //             .robot
+        //             .lock()
+        //             .await
+        //             .get_joint(joint.clone())
+        //             .await?;
+        //         let joint_position = self
+        //             .inner
+        //             .robot
+        //             .lock()
+        //             .await
+        //             .translate(joint.clone(), value.clone());
+        //         let dist = (current.position - joint_position).abs();
 
-                let dist_check = dist > 10.0;
-                if current.speed > 10.0 && dist_check {
-                    println!(
-                        "Re-looping looping because {:?} is {} off, it is at {}, it wants to be at {} | {}",
-                        current.joint,
-                        dist,
-                        current.position,
-                        joint_position,
-                        dist_check
-                    );
-                    done = false;
-                }
-            }
+        //         let dist_check = dist > 10.0;
+        //         // print speed
+        //         println!("Current Speed: {}", current.speed);
 
-            if done {
-                break;
-            }
-        }
+        //         // if current.speed > 10.0 &&dist_check {
+        //         //     println!(
+        //         //         "Re-looping looping because {:?} is {} off, it is at {}, it wants to be at {} | {}",
+        //         //         current.joint,
+        //         //         dist,
+        //         //         current.position,
+        //         //         joint_position,
+        //         //         dist_check
+        //         //     );
+        //         //     done = false;
+        //         // }
+        //     }
+
+        //     if done {
+        //         break;
+        //     }
+        // }
 
         Ok(self.advance())
     }
