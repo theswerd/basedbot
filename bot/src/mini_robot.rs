@@ -9,6 +9,7 @@ use zeroth::ServoId;
 use humanoid::Humanoid;
 use humanoid::Joint;
 use humanoid::JointPosition;
+use zeroth::TorqueEnableSetting;
 
 #[derive(Clone)]
 pub struct MiniRobot {
@@ -268,6 +269,20 @@ impl Humanoid for MiniRobot {
 
         self.calibration = calibration_builder.build();
 
+        // self.client.lock().await.disable_movement().await?;
+
+        self.client
+            .lock()
+            .await
+            .set_torque_enable(
+                (1..=16)
+                    .map(|id| TorqueEnableSetting {
+                        id: ServoId::try_from(id).expect("valid servo id"),
+                        enable: true,
+                    })
+                    .collect(),
+            )
+            .await?;
         self.client
             .lock()
             .await
@@ -661,7 +676,7 @@ impl Humanoid for MiniRobot {
                         Ok(zeroth::JointPosition {
                             id: servo_id.0,
                             position: self.translate(joint, value),
-                            speed: 100.0,
+                            speed: 30.0,
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?,
