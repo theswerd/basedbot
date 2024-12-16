@@ -12,9 +12,8 @@ use axum::{
     Json, Router,
 };
 
-pub mod humanoid;
-pub mod mini_robot;
 pub mod k_bot;
+pub mod mini_robot;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
@@ -161,8 +160,7 @@ pub fn frame_json_to_frame(frame_json: serde_json::Value) -> eyre::Result<Frame>
 
     let mut joints = BTreeMap::new();
     for (joint_id, joint_value) in frame_json.into_iter() {
-        let joint_servo_id = zeroth::ServoId::try_from(from_str::<i32>(&joint_id)?)?;
-        let humanoid_id: Joint = Joint::try_from(crate::humanoid::ServoId(joint_servo_id))?;
+        let humanoid_id: Joint = Joint::try_from(from_str::<i32>(&joint_id)?)?;
 
         joints.insert(
             humanoid_id,

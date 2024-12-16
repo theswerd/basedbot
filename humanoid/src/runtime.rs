@@ -98,7 +98,6 @@ impl<H: Humanoid> Runtime<H> {
             Some(current) => {
                 let frame = current.clone();
 
-
                 // If we have a current frame, push it back to the queue
                 // This is a hack because of the atomic cell usage
                 self.inner.queue.current.store(Some(current));

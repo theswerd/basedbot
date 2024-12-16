@@ -2,9 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bon::Builder;
-use eyre::Ok;
-use kbot::ServoId;
-use tokio::io::Join;
+use kbot::ActuatorId;
 use tokio::sync::Mutex;
 
 use humanoid::Humanoid;
@@ -80,6 +78,8 @@ fn no_such_servo() -> eyre::Report {
 }
 
 impl Humanoid for KBot {
+    type JointId = ActuatorId;
+
     async fn calibrate(&mut self) -> eyre::Result<()> {
         Ok(())
     }
@@ -104,6 +104,7 @@ impl Humanoid for KBot {
         //     position: 0.0,
         //     speed: 0.0,
         // })
+        todo!()
     }
 
     async fn set_joints(
@@ -113,8 +114,8 @@ impl Humanoid for KBot {
         let joints = joints
             .into_iter()
             .map(|(joint, value)| {
-                let servo_id: ServoId = joint.try_into()?;
-                Ok((servo_id, value))
+                let servo_id: i32 = joint.into();
+                eyre::Ok((servo_id.try_into()?, value))
             })
             .collect::<Result<BTreeMap<_, _>, _>>()?;
 

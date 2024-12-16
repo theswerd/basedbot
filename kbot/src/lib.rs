@@ -23,7 +23,7 @@ use tokio::sync::Mutex;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ServoInfo {
-    pub id: ServoId,
+    pub id: ActuatorId,
     pub temperature: f32,
     pub current: f32,
     pub voltage: f32,
@@ -35,19 +35,19 @@ pub struct ServoInfo {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TorqueSetting {
-    pub id: ServoId,
+    pub id: ActuatorId,
     pub torque: f32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TorqueEnableSetting {
-    pub id: ServoId,
+    pub id: ActuatorId,
     pub enable: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct JointPosition {
-    pub id: ServoId,
+    pub id: ActuatorId,
     pub position: f32,
     pub speed: f32,
 }
@@ -67,7 +67,7 @@ pub struct JointPosition {
     strum::EnumIter,
 )]
 #[repr(i32)]
-pub enum ServoId {
+pub enum ActuatorId {
     RightAnklePitch = 1,
     RightKneePitch = 2,
     RightHipRoll = 3,
@@ -88,31 +88,6 @@ pub enum ServoId {
     LeftShoulderYaw = 15,
     LeftElbowYaw = 16,
 }
-
-// impl TryFrom<Joint> for ServoId {
-//     type Error = Error;
-
-//     fn try_from(joint: Joint) -> Result<Self, Self::Error> {
-//         match joint {
-//             Joint::LeftShoulderYaw => Ok(ServoId::LeftShoulderYaw),
-//             Joint::LeftElbowYaw => Ok(ServoId::LeftElbowYaw),
-//             Joint::RightElbowYaw => Ok(ServoId::RightElbowYaw),
-//             Joint::RightShoulderPitch => Ok(ServoId::RightShoulderPitch),
-//             Joint::LeftShoulderPitch => Ok(ServoId::LeftShoulderPitch),
-//             Joint::RightShoulderYaw => Ok(ServoId::RightShoulderYaw),
-//             Joint::LeftHipPitch => Ok(ServoId::LeftHipPitch),
-//             Joint::LeftHipYaw => Ok(ServoId::LeftHipYaw),
-//             Joint::RightHipPitch => Ok(ServoId::RightHipPitch),
-//             Joint::RightHipYaw => Ok(ServoId::RightHipYaw),
-//             Joint::LeftKneePitch => Ok(ServoId::LeftKneePitch),
-//             Joint::RightKneePitch => Ok(ServoId::RightKneePitch),
-//             Joint::LeftAnklePitch => Ok(ServoId::LeftAnklePitch),
-//             Joint::RightAnklePitch => Ok(ServoId::RightAnklePitch),
-
-//             _ => Err(()),
-//         }
-//     }
-// }
 
 #[derive(Debug, snafu::Snafu)]
 pub enum Error {
@@ -165,27 +140,7 @@ impl Client {
         })
     }
 
-    // pub async fn get_actuators_state(&mut self) -> Result<Vec<JointPosition>, Error> {
-    //     let res = self
-    //         .inner
-    //         .get_actuators_state(GetActuatorsStateRequest {
-    //             actuator_ids: ServoId::iter()
-    //                 .map(|id| i32::from(id))
-    //                 .map(|it| it as u32)
-    //                 .collect(),
-    //         })
-    //         .await?;
-    //
-    //     let out: Vec<JointPosition> = res
-    //         .into_inner()
-    //         .states
-    //         .iter()
-    //         .filter_map(|v| {
-    //             let position = match v.position {
-    //                 Some(p) => p,
-    //                 None => return None,
-    //             };
-    pub async fn set_positions(&self, positions: BTreeMap<ServoId, f32>) -> Result<(), Error> {
+    pub async fn set_positions(&self, positions: BTreeMap<ActuatorId, f32>) -> Result<(), Error> {
         self.inner
             .lock()
             .await
@@ -207,7 +162,7 @@ impl Client {
 
     pub async fn get_actuator_state(
         &mut self,
-        servo_id: ServoId,
+        servo_id: ActuatorId,
     ) -> Result<Vec<JointPosition>, Error> {
         let res = self
             .inner
@@ -233,7 +188,7 @@ impl Client {
                     None => return None,
                 };
                 Some(JointPosition {
-                    id: (ServoId::try_from(v.actuator_id as i32).unwrap()),
+                    id: (ActuatorId::try_from(v.actuator_id as i32).unwrap()),
                     position: position as f32,
                     speed: speed as f32,
                 })
